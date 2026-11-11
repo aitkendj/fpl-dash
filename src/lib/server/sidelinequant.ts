@@ -1,6 +1,8 @@
 import "server-only"
 
+import { cacheLife } from "next/cache"
 import { fetchJson, tryFetchJson, type FetchResult } from "./http"
+import { reduceSqPayload, type ReducedSqPayload } from "./reduce"
 import type { SqPayload } from "./types"
 
 /**
@@ -31,14 +33,14 @@ export const SQ_ATTRIBUTION = {
 export const SQ_CACHE_SECONDS = 60 * 60
 
 /**
- * Fetch the latest projections.
+ * Fetch the raw projections payload without caching.
  *
- * `latest.json` redirects to the current gameweek's own address. The
- * redirect is followed transparently.
+ * Kept separate from the cached accessor so the live integration test
+ * can exercise the same request path outside the Next.js runtime.
  */
-export async function fetchProjections(): Promise<SqPayload> {
+export async function fetchProjectionsRaw(): Promise<SqPayload> {
   const payload = await fetchJson<SqPayload>(SQ_ENDPOINT, {
-    revalidate: SQ_CACHE_SECONDS,
+    revalidate: 0,
     timeout: 20_000,
   })
 
@@ -49,6 +51,20 @@ export async function fetchProjections(): Promise<SqPayload> {
   }
 
   return payload
+}
+
+/**
+ * The latest projections, reduced to the columns we use and cached.
+ *
+ * `latest.json` redirects to the current gameweek's own address. The
+ * redirect is followed transparently.
+ */
+export async function getProjections(): Promise<ReducedSqPayload> {
+  "use cache"
+  cacheLife({ revalidate: SQ_CACHE_SECONDS, stale: 60 * 60 * 6 })
+
+  const raw = await fetchProjectionsRaw()
+  return reduceSqPayload(raw)
 }
 
 /**

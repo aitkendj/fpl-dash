@@ -10,13 +10,13 @@
 import {
   FPL_API_BASE,
   FPL_TEAM_ID,
-  fetchBootstrap,
+  fetchBootstrapRaw,
   fetchEntry,
   fetchHistory,
   fetchPicks,
-  fetchFixtures,
+  fetchFixturesRaw,
 } from "../src/lib/server/fpl"
-import { fetchProjections } from "../src/lib/server/sidelinequant"
+import { fetchProjectionsRaw } from "../src/lib/server/sidelinequant"
 import {
   buildElementContext,
   buildProjectionLookup,
@@ -43,11 +43,11 @@ function near(a: number, b: number, tolerance = 0.01) {
 
 async function main() {
   console.log("\nFetching from the live FPL API")
-  const bootstrap = await fetchBootstrap()
+  const bootstrap = await fetchBootstrapRaw()
   const entry = await fetchEntry()
   const history = await fetchHistory()
-  const fixtures = await fetchFixtures()
-  const projections = await fetchProjections()
+  const fixtures = await fetchFixturesRaw()
+  const projections = await fetchProjectionsRaw()
   
   check("bootstrap has players", bootstrap.elements.length > 400, `${bootstrap.elements.length}`)
   check("bootstrap has 20 clubs", bootstrap.teams.length === 20)

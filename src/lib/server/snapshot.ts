@@ -2,13 +2,13 @@ import "server-only"
 
 import {
   FPL_TEAM_ID,
-  fetchBootstrap,
+  getBootstrap,
+  getFixtures,
   tryFetchEntry,
-  tryFetchFixtures,
   tryFetchHistory,
   tryFetchPicks,
 } from "@/lib/server/fpl"
-import { tryFetchProjections } from "@/lib/server/sidelinequant"
+import { getProjections } from "@/lib/server/sidelinequant"
 import {
   applyProjections,
   buildElementContext,
@@ -57,22 +57,21 @@ export async function loadDashboardSnapshot(
   /* ---- Official FPL data -------------------------------------------- */
   // The bootstrap is the spine of the dashboard — without it there is
   // nothing to show, so this one is allowed to throw.
-  const bootstrap = await fetchBootstrap()
+  const bootstrap = await getBootstrap()
 
-  const [entryResult, historyResult, fixturesResult] = await Promise.all([
+  const [entryResult, historyResult, fixtures] = await Promise.all([
     tryFetchEntry(teamId),
     tryFetchHistory(teamId),
-    tryFetchFixtures(),
+    getFixtures(),
   ])
 
   const entry = entryResult.data
   const history = historyResult.data
-  const fixtures = fixturesResult.data ?? []
 
   const fplErrors = [
     entryResult.error && `manager profile: ${entryResult.error}`,
     historyResult.error && `history: ${historyResult.error}`,
-    fixturesResult.error && `fixtures: ${fixturesResult.error}`,
+
   ].filter(Boolean) as string[]
 
   const fplSource: SourceStatus = {
@@ -95,14 +94,20 @@ export async function loadDashboardSnapshot(
     bootstrap.events.find((event) => event.is_next)?.id ?? currentEvent + 1
 
   /* ---- Sideline Quant ------------------------------------------------ */
-  const sqResult = await tryFetchProjections()
-  const sqPayload = sqResult.data
+  // A failed feed degrades the projections section rather than the page.
+  let sqPayload: Awaited<ReturnType<typeof getProjections>> | null = null
+  let sqError: string | null = null
+  try {
+    sqPayload = await getProjections()
+  } catch (error) {
+    sqError = error instanceof Error ? error.message : "Unknown error"
+  }
 
   sources.push({
     name: "sidelinequant",
     label: "Sideline Quant",
-    error: sqResult.error,
-    fetchedAt: sqResult.fetchedAt,
+    error: sqError,
+    fetchedAt: sqPayload ? new Date() : null,
     official: false,
   })
 

@@ -4,15 +4,13 @@ import type {
   Projection,
   SquadPlayer,
 } from "@/lib/model"
+import type { FplHistory, FplPicks } from "@/lib/server/types"
+import type { ReducedSqPayload, ReducedSqRow } from "@/lib/server/reduce"
 import type {
-  FplBootstrap,
-  FplElement,
-  FplFixture,
-  FplHistory,
-  FplPicks,
-  SqPayload,
-  SqRow,
-} from "@/lib/server/types"
+  ReducedBootstrap,
+  ReducedElement,
+  ReducedFixture,
+} from "@/lib/server/reduce"
 import { SQUAD_SLOT_LABELS } from "@/lib/positions"
 
 /**
@@ -77,19 +75,19 @@ const POSITION_BY_ELEMENT_TYPE: Record<number, DashboardPlayer["position"]> = {
 }
 
 export interface ElementContext {
-  bootstrap: FplBootstrap
+  bootstrap: ReducedBootstrap
   /** Next gameweek's fixtures, keyed by team id. */
-  fixturesByTeam: Map<number, FplFixture[]>
+  fixturesByTeam: Map<number, ReducedFixture[]>
   /** The gameweek being projected. */
   nextGameweek: number
 }
 
 export function buildElementContext(
-  bootstrap: FplBootstrap,
-  fixtures: FplFixture[],
+  bootstrap: ReducedBootstrap,
+  fixtures: ReducedFixture[],
   nextGameweek: number
 ): ElementContext {
-  const fixturesByTeam = new Map<number, FplFixture[]>()
+  const fixturesByTeam = new Map<number, ReducedFixture[]>()
 
   for (const fixture of fixtures) {
     if (fixture.event !== nextGameweek) continue
@@ -107,7 +105,7 @@ export function buildElementContext(
  * Convert one FPL element into the common model.
  */
 export function transformElement(
-  element: FplElement,
+  element: ReducedElement,
   context: ElementContext
 ): DashboardPlayer {
   const { bootstrap, fixturesByTeam } = context
@@ -199,7 +197,7 @@ export function transformElement(
  *    of starting at least once is 1 - (1 - p1)(1 - p2)..., which is not
  *    the same as the mean.
  */
-export function aggregateProjectionRows(rows: SqRow[]): Projection {
+export function aggregateProjectionRows(rows: ReducedSqRow[]): Projection {
   if (rows.length === 0) {
     return {
       source: "sidelinequant",
@@ -237,9 +235,9 @@ export function aggregateProjectionRows(rows: SqRow[]): Projection {
  * Group Sideline Quant rows by player and build a lookup of projections.
  */
 export function buildProjectionLookup(
-  payload: SqPayload
+  payload: ReducedSqPayload
 ): Map<number, Projection> {
-  const rowsByPlayer = new Map<number, SqRow[]>()
+  const rowsByPlayer = new Map<number, ReducedSqRow[]>()
 
   for (const row of payload.rows) {
     const list = rowsByPlayer.get(row.player_id) ?? []
