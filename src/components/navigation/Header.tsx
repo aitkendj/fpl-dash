@@ -4,13 +4,18 @@ import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { CalendarClock, RefreshCw, Database } from "lucide-react"
 import { NAV_ITEMS, isActivePath } from "./Sidebar"
-import { getDashboardData } from "@/data/provider"
 import { cn } from "@/lib/utils"
 
-export function DashboardHeader() {
+export function DashboardHeader({
+  currentGameweek,
+  origin,
+}: {
+  currentGameweek: number
+  /** "live" when the figures come from the FPL API. */
+  origin: "live" | "snapshot"
+}) {
   const pathname = usePathname()
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const { currentGameweek } = getDashboardData()
 
   useEffect(() => {
     const tick = () => setLastUpdated(new Date())
@@ -37,7 +42,9 @@ export function DashboardHeader() {
 
       {/* Meta */}
       <div className="flex items-center gap-2">
-        <MetaChip icon={<CalendarClock className="h-3.5 w-3.5" strokeWidth={1.9} />}>
+        <MetaChip
+          icon={<CalendarClock className="h-3.5 w-3.5" strokeWidth={1.9} />}
+        >
           Gameweek {currentGameweek}
         </MetaChip>
 
@@ -53,10 +60,17 @@ export function DashboardHeader() {
             : "—"}
         </MetaChip>
 
-        <span className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-control border border-caution/25 bg-caution-wash px-2.5 text-xs font-medium text-caution">
-          <Database className="h-3.5 w-3.5" strokeWidth={2} />
-          Sample
-        </span>
+        {origin === "live" ? (
+          <span className="inline-flex h-8 items-center gap-1.5 rounded-control border border-positive/25 bg-positive-wash px-2.5 text-xs font-medium text-positive">
+            <Database className="h-3.5 w-3.5" strokeWidth={2} />
+            Live
+          </span>
+        ) : (
+          <span className="inline-flex h-8 items-center gap-1.5 rounded-control border border-caution/25 bg-caution-wash px-2.5 text-xs font-medium text-caution">
+            <Database className="h-3.5 w-3.5" strokeWidth={2} />
+            Snapshot
+          </span>
+        )}
       </div>
     </header>
   )

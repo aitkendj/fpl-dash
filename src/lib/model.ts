@@ -1,5 +1,3 @@
-import type { FPLPosition } from "@/data/squad"
-
 /**
  * The common player model used across the whole dashboard.
  *
@@ -7,6 +5,8 @@ import type { FPLPosition } from "@/data/squad"
  * fields so the interface can always distinguish between them, and so
  * a new prediction provider can be added without changing this shape.
  */
+
+export type FPLPosition = "GK" | "DEF" | "MID" | "FWD"
 
 export type FplStatus = "a" | "d" | "i" | "s" | "u" | "n"
 
@@ -89,6 +89,15 @@ export interface DashboardPlayer {
   fplProjection: Projection | null
   /** Sideline Quant's model projections for the next round. */
   sidelineQuantProjection: Projection | null
+  /**
+   * Resolved expected points for the next gameweek.
+   *
+   * Prefers the model projection and falls back to FPL's own figure.
+   * `expectedPointsSource` records which one was used, so the interface
+   * can always say where the number came from.
+   */
+  expectedPoints: number
+  expectedPointsSource: "sidelinequant" | "fpl" | null
 
   /* ---- Upcoming fixture -------------------------------------------- */
   /** Number of fixtures in the next gameweek (2 in a double gameweek). */

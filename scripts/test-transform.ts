@@ -214,6 +214,8 @@ console.log("\nApplying projections to players")
     chanceOfPlaying: 100,
     fplProjection: { source: "fpl", expectedPoints: 4.5, fixtures: 1 },
     sidelineQuantProjection: null,
+    expectedPoints: 4.5,
+    expectedPointsSource: "fpl",
     fixtureCount: 1,
     opponents: ["Chelsea"],
     kickoffs: ["2026-11-21T12:30:00Z"],

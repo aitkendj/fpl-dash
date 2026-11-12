@@ -1,4 +1,4 @@
-import type { FPLPosition } from "@/data/squad"
+import type { FPLPosition } from "@/lib/model"
 
 /**
  * Transfer simulation.
@@ -17,14 +17,14 @@ import type { FPLPosition } from "@/data/squad"
 /** The minimum shape a player needs for transfer maths. */
 export interface FplPlayer {
   id: number
-  web_name: string
+  webName: string
   position: FPLPosition
   team: number
   /** FPL native: tenths of £m */
-  now_price: number
-  expected_points: number
-  is_captain: boolean
-  is_vice_captain: boolean
+  priceTenths: number
+  expectedPoints: number
+  isCaptain: boolean
+  isViceCaptain: boolean
 }
 
 export interface TransferProposal {
@@ -103,13 +103,13 @@ export function round(value: number, decimals = 1): number {
  * multiplier to whoever holds the armband.
  */
 export function teamExpectedPoints(
-  squad: Pick<FplPlayer, "id" | "expected_points">[],
+  squad: { id: number; expectedPoints: number }[],
   captainId?: number | null
 ): number {
   return round(
     squad.reduce((sum, player) => {
       const multiplier = captainId != null && player.id === captainId ? 2 : 1
-      return sum + (player.expected_points ?? 0) * multiplier
+      return sum + (player.expectedPoints ?? 0) * multiplier
     }, 0)
   )
 }
@@ -127,8 +127,8 @@ export function resolveCaptaincy(squad: FplPlayer[]): {
 } {
   if (squad.length === 0) return { captain: null, viceCaptain: null }
 
-  const currentCaptain = squad.find((p) => p.is_captain)
-  const currentVice = squad.find((p) => p.is_vice_captain)
+  const currentCaptain = squad.find((p) => p.isCaptain)
+  const currentVice = squad.find((p) => p.isViceCaptain)
 
   let captain = currentCaptain ?? null
   let viceCaptain = currentVice ?? null
@@ -141,7 +141,7 @@ export function resolveCaptaincy(squad: FplPlayer[]): {
 
   // Still no captain — the best remaining player steps up
   if (!captain) {
-    captain = [...squad].sort((a, b) => b.expected_points - a.expected_points)[0]
+    captain = [...squad].sort((a, b) => b.expectedPoints - a.expectedPoints)[0]
   }
 
   // Vice-captain sold — promote the next best
@@ -149,7 +149,7 @@ export function resolveCaptaincy(squad: FplPlayer[]): {
     viceCaptain =
       [...squad]
         .filter((p) => p.id !== captain?.id)
-        .sort((a, b) => b.expected_points - a.expected_points)[0] ?? null
+        .sort((a, b) => b.expectedPoints - a.expectedPoints)[0] ?? null
   }
 
   return { captain, viceCaptain }
@@ -198,7 +198,7 @@ export function simulateTransfers({
         soldId: proposal.soldId,
         boughtId: proposal.boughtId,
         soldName: "—",
-        boughtName: pool.find((p) => p.id === proposal.boughtId)?.web_name ?? "—",
+        boughtName: pool.find((p) => p.id === proposal.boughtId)?.webName ?? "—",
         soldPrice: 0,
         boughtPrice: 0,
         epsDelta: 0,
@@ -213,9 +213,9 @@ export function simulateTransfers({
       perTransfer.push({
         soldId: proposal.soldId,
         boughtId: proposal.boughtId,
-        soldName: sold.web_name,
+        soldName: sold.webName,
         boughtName: "—",
-        soldPrice: priceInMillions(sold.now_price),
+        soldPrice: priceInMillions(sold.priceTenths),
         boughtPrice: 0,
         epsDelta: 0,
         moneyDelta: 0,
@@ -229,14 +229,14 @@ export function simulateTransfers({
       perTransfer.push({
         soldId: proposal.soldId,
         boughtId: proposal.boughtId,
-        soldName: sold.web_name,
-        boughtName: bought.web_name,
-        soldPrice: priceInMillions(sold.now_price),
-        boughtPrice: priceInMillions(bought.now_price),
+        soldName: sold.webName,
+        boughtName: bought.webName,
+        soldPrice: priceInMillions(sold.priceTenths),
+        boughtPrice: priceInMillions(bought.priceTenths),
         epsDelta: 0,
         moneyDelta: 0,
         valid: false,
-        reason: `You already own ${bought.web_name}.`,
+        reason: `You already own ${bought.webName}.`,
       })
       continue
     }
@@ -245,22 +245,22 @@ export function simulateTransfers({
     workingSquad = workingSquad.filter((p) => p.id !== sold.id)
     workingSquad.push({
       ...bought,
-      is_captain: false,
-      is_vice_captain: false,
+      isCaptain: false,
+      isViceCaptain: false,
     })
 
     const delta =
-      priceInMillions(sold.now_price) - priceInMillions(bought.now_price)
+      priceInMillions(sold.priceTenths) - priceInMillions(bought.priceTenths)
     bank += delta
     moneyDelta += delta
 
     perTransfer.push({
       soldId: sold.id,
       boughtId: bought.id,
-      soldName: sold.web_name,
-      boughtName: bought.web_name,
-      soldPrice: priceInMillions(sold.now_price),
-      boughtPrice: priceInMillions(bought.now_price),
+      soldName: sold.webName,
+      boughtName: bought.webName,
+      soldPrice: priceInMillions(sold.priceTenths),
+      boughtPrice: priceInMillions(bought.priceTenths),
       epsDelta: 0, // filled in below
       moneyDelta: round(delta),
       valid: true,
@@ -315,18 +315,18 @@ export function simulateTransfers({
     .map((p) => pool.find((x) => x.id === p.boughtId))
     .filter((p): p is FplPlayer => !!p)
   const bestIncoming = [...incoming].sort(
-    (a, b) => b.expected_points - a.expected_points
+    (a, b) => b.expectedPoints - a.expectedPoints
   )[0]
 
   if (
     bestIncoming &&
     captaincy.captain &&
-    bestIncoming.expected_points > captaincy.captain.expected_points
+    bestIncoming.expectedPoints > captaincy.captain.expectedPoints
   ) {
     warnings.push(
-      `Consider making ${bestIncoming.web_name} captain — ${bestIncoming.expected_points.toFixed(
+      `Consider making ${bestIncoming.webName} captain — ${bestIncoming.expectedPoints.toFixed(
         1
-      )} projected points against ${captaincy.captain.web_name}'s ${captaincy.captain.expected_points.toFixed(
+      )} projected points against ${captaincy.captain.webName}'s ${captaincy.captain.expectedPoints.toFixed(
         1
       )}.`
     )

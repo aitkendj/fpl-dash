@@ -1,4 +1,4 @@
-import type { FPLPosition } from "@/data/squad"
+import type { FPLPosition } from "@/lib/model"
 
 /**
  * Position metadata shared across the dashboard.

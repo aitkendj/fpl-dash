@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
-import type { FPLPosition } from "@/data/squad"
+import type { FPLPosition } from "@/lib/model"
 
 /* ------------------------------------------------------------------ */
 /* Badge                                                               */

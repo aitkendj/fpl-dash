@@ -1,4 +1,4 @@
-import type { SquadMember } from "@/data/squad"
+import type { DashboardPlayer } from "@/lib/model"
 import {
   round,
   resolveCaptaincy,
@@ -29,7 +29,7 @@ import {
  * including goalkeepers.
  */
 export function calculateTeamExpectedPoints(
-  squad: Pick<FplPlayer, "id" | "expected_points" | "is_captain" | "is_vice_captain">[],
+  squad: Pick<FplPlayer, "id" | "expectedPoints" | "isCaptain" | "isViceCaptain">[],
   captainId?: number
 ): number {
   return teamExpectedPoints(squad, captainId)
@@ -41,16 +41,16 @@ export function calculateTeamExpectedPoints(
  * season total is the captain bonus.
  */
 export function calculateTotalPoints(
-  squad: Pick<SquadMember, "total_points">[]
+  squad: Pick<DashboardPlayer, "totalPoints">[]
 ): number {
-  return squad.reduce((sum, player) => sum + (player.total_points ?? 0), 0)
+  return squad.reduce((sum, player) => sum + (player.totalPoints ?? 0), 0)
 }
 
 /**
  * Average points per gameweek.
  */
 export function calculateAveragePointsPerGame(
-  squad: Pick<SquadMember, "total_points">[],
+  squad: Pick<DashboardPlayer, "totalPoints">[],
   gameweeks: number
 ): number {
   if (gameweeks <= 0) return 0

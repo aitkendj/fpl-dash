@@ -1,4 +1,4 @@
-import type { SquadMember, FPLPosition } from "@/data/squad"
+import type { FPLPosition } from "@/lib/model"
 
 /**
  * Formation definitions for a portrait pitch, matching the FPL app
@@ -47,13 +47,24 @@ export const FORMATIONS: Record<string, FormationLine[]> = {
   ],
 }
 
-export interface FormationSlot {
+/**
+ * The minimum a player needs for formation placement.
+ */
+export interface FormationPlayer {
+  id: number
+  position: FPLPosition
+  isCaptain: boolean
+  isViceCaptain: boolean
+  isSubstitute: boolean
+}
+
+export interface FormationSlot<T extends FormationPlayer = FormationPlayer> {
   role: FPLPosition
   /** Percentage across the pitch (0 = left touchline, 100 = right) */
   x: number
   /** Percentage down the pitch (0 = own goal, 100 = opponent goal) */
   y: number
-  player: SquadMember
+  player: T
 }
 
 /**
@@ -69,12 +80,12 @@ function spreadX(index: number, count: number, spread: number): number {
  * Build the positional slot list for a formation, assigning the given
  * starters to slots in order.
  */
-export function buildFormationSlots(
+export function buildFormationSlots<T extends FormationPlayer>(
   formation: string,
-  starters: SquadMember[]
-): FormationSlot[] {
+  starters: T[]
+): FormationSlot<T>[] {
   const lines = FORMATIONS[formation] ?? FORMATIONS["3-4-3"]
-  const slots: FormationSlot[] = []
+  const slots: FormationSlot<T>[] = []
 
   let cursor = 0
 
@@ -104,17 +115,17 @@ export function buildFormationSlots(
  * never selected twice. If the squad cannot fill a slot exactly, the
  * best remaining outfield player is used as a fallback.
  */
-export function selectStartingEleven(
-  squad: SquadMember[],
+export function selectStartingEleven<T extends FormationPlayer>(
+  squad: T[],
   formation: string
-): SquadMember[] {
+): T[] {
   const lines = FORMATIONS[formation] ?? FORMATIONS["3-4-3"]
   const needed: FPLPosition[] = lines.flatMap((line) => line.positions)
 
   // Build a consumable pool per position from the non-substitutes
-  const pools = new Map<FPLPosition, SquadMember[]>()
+  const pools = new Map<FPLPosition, T[]>()
   for (const player of squad) {
-    if (player.is_substitute) continue
+    if (player.isSubstitute) continue
     const pool = pools.get(player.position) ?? []
     pool.push(player)
     pools.set(player.position, pool)
@@ -122,19 +133,19 @@ export function selectStartingEleven(
 
   // Outfield players eligible to fill an unfilled slot
   const outfieldFallback = squad.filter(
-    (p) => !p.is_substitute && p.position !== "GK"
+    (p) => !p.isSubstitute && p.position !== "GK"
   )
 
-  const selected: SquadMember[] = []
+  const selected: T[] = []
   const used = new Set<number>()
 
   for (const position of needed) {
     const pool = pools.get(position)
-    let candidate = pool?.find((p) => !used.has(p.id))
+    let candidate = pool?.find((p: T) => !used.has(p.id))
 
     // Fall back to any unused outfield player so the XI is always full
     if (!candidate) {
-      candidate = outfieldFallback.find((p) => !used.has(p.id))
+      candidate = outfieldFallback.find((p: T) => !used.has(p.id))
     }
 
     if (candidate) {
@@ -149,6 +160,6 @@ export function selectStartingEleven(
 /**
  * Players on the bench.
  */
-export function selectSubstitutes(squad: SquadMember[]): SquadMember[] {
-  return squad.filter((p) => p.is_substitute)
+export function selectSubstitutes<T extends FormationPlayer>(squad: T[]): T[] {
+  return squad.filter((p) => p.isSubstitute)
 }

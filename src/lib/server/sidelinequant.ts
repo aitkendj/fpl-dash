@@ -16,12 +16,7 @@ import type { SqPayload } from "./types"
 
 export const SQ_ENDPOINT = "https://sidelinequant.com/data/latest.json"
 
-export const SQ_ATTRIBUTION = {
-  name: "Sideline Quant",
-  url: "https://sidelinequant.com",
-  licence: "CC BY 4.0",
-  licenceUrl: "https://creativecommons.org/licenses/by/4.0/",
-} as const
+export { SQ_ATTRIBUTION } from "@/lib/attribution"
 
 /**
  * Cache policy.

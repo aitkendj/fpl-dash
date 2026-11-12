@@ -1,5 +1,7 @@
 import "server-only"
 
+import { cacheLife } from "next/cache"
+
 import {
   FPL_TEAM_ID,
   getBootstrap,
@@ -10,6 +12,11 @@ import {
 } from "@/lib/server/fpl"
 import { getProjections } from "@/lib/server/sidelinequant"
 import {
+  getSnapshotData,
+  getSnapshotStatus,
+  type DashboardSnapshot,
+} from "@/data/provider"
+import {
   applyProjections,
   buildElementContext,
   buildHistoryRows,
@@ -18,9 +25,6 @@ import {
   transformElement,
 } from "@/lib/transform"
 import type {
-  DashboardPlayer,
-  DataStatus,
-  GameweekHistoryRow,
   ManagerSummary,
   SourceStatus,
   SquadPlayer,
@@ -32,32 +36,46 @@ import type {
  * Each source is fetched independently so one failing does not take the
  * whole page down. Failures are recorded and surfaced through `status` —
  * data is never silently substituted or invented.
+ *
+ * If the live sources cannot be reached at all, the captured snapshot
+ * is used instead and `origin` is set to "snapshot" so the interface
+ * can say so plainly.
  */
 
-export interface DashboardSnapshot {
-  manager: ManagerSummary | null
-  squad: SquadPlayer[]
-  players: DashboardPlayer[]
-  history: GameweekHistoryRow[]
-  /** The gameweek the projections describe. */
-  projectionGameweek: number | null
-  /** Chips the manager has played this season. */
-  chips: { name: string; event: number; time: string }[]
-  status: DataStatus
-}
+export type { DashboardSnapshot }
 
 /**
  * Load everything the dashboard needs.
  */
+/**
+ * Loads everything the dashboard needs.
+ *
+ * Cached for five minutes. The expensive upstream fetches inside are
+ * cached for longer, so a revalidation only re-reads the manager's
+ * figures — which change on every deadline.
+ */
 export async function loadDashboardSnapshot(
   teamId: number = FPL_TEAM_ID
 ): Promise<DashboardSnapshot> {
+  "use cache"
+  cacheLife({ revalidate: 60 * 5, stale: 60 * 30 })
   const sources: SourceStatus[] = []
 
   /* ---- Official FPL data -------------------------------------------- */
   // The bootstrap is the spine of the dashboard — without it there is
   // nothing to show, so this one is allowed to throw.
-  const bootstrap = await getBootstrap()
+  let bootstrap: Awaited<ReturnType<typeof getBootstrap>>
+  try {
+    bootstrap = await getBootstrap()
+  } catch (error) {
+    // The live sources are unreachable — fall back to the captured
+    // snapshot and say so plainly rather than showing invented data.
+    const message = error instanceof Error ? error.message : "Unknown error"
+    return {
+      ...getSnapshotData(),
+      status: getSnapshotStatus([`live data unavailable: ${message}`]),
+    }
+  }
 
   const [entryResult, historyResult, fixtures] = await Promise.all([
     tryFetchEntry(teamId),
@@ -167,6 +185,8 @@ export async function loadDashboardSnapshot(
     history: historyRows,
     projectionGameweek: sqPayload?.gameweek ?? null,
     chips: history?.chips ?? [],
+    origin: "live",
+    retrievedAt: new Date().toISOString(),
     status: {
       sources,
       complete: sources.every((source) => !source.error),

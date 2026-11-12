@@ -35,6 +35,9 @@
   --color-negative-wash: #fdf2f1;
   --color-caution: #b45309;
   --color-caution-wash: #fdf6ec;
+  /* Model projections — deliberately distinct from positive/negative */
+  --color-model: #4338ca;
+  --color-model-wash: #eef1fb;
 
   /* ---- Pitch --------------------------------------------------- */
   --color-pitch: #f4f6f4;

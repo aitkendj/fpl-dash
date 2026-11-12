@@ -12,7 +12,8 @@
     "test:transfers": "tsx scripts/test-transfers.ts",
     "test": "npm run validate && npm run test:transfers && npm run test:transform",
     "test:transform": "tsx scripts/test-transform.ts",
-    "test:live": "tsx --conditions=react-server scripts/test-live.ts"
+    "test:live": "tsx --conditions=react-server scripts/test-live.ts",
+    "capture": "tsx --conditions=react-server scripts/capture-snapshot.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

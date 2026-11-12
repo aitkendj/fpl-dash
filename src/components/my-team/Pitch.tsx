@@ -1,5 +1,4 @@
-import type { SquadMember } from "@/data/squad"
-import { PL_TEAM_ABBREV } from "@/data/squad"
+import type { FPLPosition } from "@/lib/model"
 import { cn } from "@/lib/utils"
 
 /**
@@ -10,12 +9,19 @@ import { cn } from "@/lib/utils"
  * distort and the player tokens always land on the right coordinates.
  */
 export interface FormationSlot {
-  role: string
+  role: FPLPosition
   /** Percentage across the pitch (0 = left touchline, 100 = right) */
   x: number
   /** Percentage down the pitch (0 = own goal, 100 = opponent goal) */
   y: number
-  player: SquadMember
+  player: {
+    id: number
+    webName: string
+    clubAbbrev: string
+    priceTenths: number
+    isCaptain: boolean
+    isViceCaptain: boolean
+  }
 }
 
 export interface PitchProps {
@@ -167,8 +173,8 @@ export function Pitch({ slots, className }: PitchProps) {
 
 function PitchToken({ slot }: { slot: FormationSlot }) {
   const { player, x, y } = slot
-  const isCaptain = player.is_captain
-  const isVice = player.is_vice_captain
+  const isCaptain = player.isCaptain
+  const isVice = player.isViceCaptain
 
   return (
     <div
@@ -185,9 +191,9 @@ function PitchToken({ slot }: { slot: FormationSlot }) {
               : "border-line-strong bg-surface text-ink"
           )}
         >
-          {player.web_name
+          {player.webName
             .split(" ")
-            .map((part) => part[0])
+            .map((part: string) => part[0])
             .join("")
             .slice(0, 2)
             .toUpperCase()}
@@ -207,13 +213,13 @@ function PitchToken({ slot }: { slot: FormationSlot }) {
               </span>
             )}
             <span className="text-[11px] font-semibold tracking-tight text-ink">
-              {player.web_name}
+              {player.webName}
             </span>
           </div>
           <div className="mt-px flex items-center justify-center gap-1 text-[9px] text-ink-tertiary">
-            <span className="font-medium">{PL_TEAM_ABBREV[player.team]}</span>
+            <span className="font-medium">{player.clubAbbrev}</span>
             <span className="text-line-strong">·</span>
-            <span data-numeric>£{(player.now_price / 10).toFixed(1)}m</span>
+            <span data-numeric>£{(player.priceTenths / 10).toFixed(1)}m</span>
           </div>
         </div>
       </div>

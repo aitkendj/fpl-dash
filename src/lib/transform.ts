@@ -173,6 +173,8 @@ export function transformElement(
           },
 
     sidelineQuantProjection: null,
+    expectedPoints: epNext ?? 0,
+    expectedPointsSource: epNext === null ? null : "fpl",
 
     fixtureCount: teamFixtures.length,
     opponents,
@@ -267,8 +269,16 @@ export function applyProjections(
 ): DashboardPlayer[] {
   return players.map((player) => {
     const projection = lookup.get(player.id)
-    if (!projection) return { ...player, sidelineQuantProjection: null }
-    return { ...player, sidelineQuantProjection: projection }
+    if (!projection) {
+      return { ...player, sidelineQuantProjection: null }
+    }
+    return {
+      ...player,
+      sidelineQuantProjection: projection,
+      // The model projection takes precedence over FPL's own figure.
+      expectedPoints: projection.expectedPoints,
+      expectedPointsSource: "sidelinequant",
+    }
   })
 }
 

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google"
 import "./globals.css"
 import { NavigationSidebar } from "@/components/navigation/Sidebar"
 import { DashboardHeader } from "@/components/navigation/Header"
+import { loadDashboardSnapshot } from "@/lib/server/snapshot"
 
 const geist = Geist({
   subsets: ["latin"],
@@ -29,11 +30,14 @@ export const metadata: Metadata = {
     "Premium Fantasy Premier League analytics dashboard for team 6906082.",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Deduplicated with the page's own call within the same request.
+  const snapshot = await loadDashboardSnapshot()
+
   return (
     <html
       lang="en"
@@ -44,7 +48,10 @@ export default function RootLayout({
 
         {/* Content column — offset by the fixed sidebar */}
         <div className="pl-60">
-          <DashboardHeader />
+          <DashboardHeader
+            currentGameweek={snapshot.manager?.currentGameweek ?? 0}
+            origin={snapshot.origin}
+          />
           <main className="mx-auto w-full max-w-[1440px] px-6 py-7 lg:px-8">
             {children}
           </main>
