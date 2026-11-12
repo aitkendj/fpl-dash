@@ -51,14 +51,20 @@ export function TBody({ className, children, ...props }: React.HTMLAttributes<HT
 export function Th({
   children,
   align = "left",
+  dense = false,
   className,
   ...props
-}: ThHTMLAttributes<HTMLTableCellElement> & { align?: Align }) {
+}: ThHTMLAttributes<HTMLTableCellElement> & {
+  align?: Align
+  /** Tighter padding, for tables packed into narrow columns */
+  dense?: boolean
+}) {
   return (
     <th
       scope="col"
       className={cn(
-        "py-2 px-3 text-2xs font-semibold uppercase tracking-[0.09em] text-ink-tertiary",
+        "py-2 text-2xs font-semibold uppercase tracking-[0.09em] text-ink-tertiary",
+        dense ? "px-2" : "px-3",
         ALIGN_CLASS[align],
         className
       )}
@@ -72,19 +78,23 @@ export function Th({
 export function Td({
   children,
   align = "left",
-  className,
   numeric = false,
+  dense = false,
+  className,
   ...props
 }: TdHTMLAttributes<HTMLTableCellElement> & {
   align?: Align
   /** Applies tabular figures, for columns of numbers */
   numeric?: boolean
+  /** Tighter padding, for tables packed into narrow columns */
+  dense?: boolean
 }) {
   return (
     <td
       data-numeric={numeric || undefined}
       className={cn(
-        "px-3 py-2.5 text-ink-secondary",
+        "text-ink-secondary",
+        dense ? "px-2 py-1.5" : "px-3 py-2.5",
         numeric && "tabular-nums",
         ALIGN_CLASS[align],
         className
@@ -105,6 +115,7 @@ export function SortableTh({
   active,
   asc,
   align = "left",
+  dense = false,
   className,
 }: {
   children: ReactNode
@@ -112,13 +123,15 @@ export function SortableTh({
   active: boolean
   asc: boolean
   align?: Align
+  dense?: boolean
   className?: string
 }) {
   return (
     <th
       scope="col"
       className={cn(
-        "py-2 px-3 text-2xs font-semibold uppercase tracking-[0.09em]",
+        "py-2 text-2xs font-semibold uppercase tracking-[0.09em]",
+        dense ? "px-2" : "px-3",
         ALIGN_CLASS[align],
         className
       )}

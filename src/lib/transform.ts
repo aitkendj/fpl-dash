@@ -121,6 +121,7 @@ export function transformElement(
 
   const teamFixtures = fixturesByTeam.get(element.team) ?? []
   const opponents: string[] = []
+  const opponentAbbrevs: string[] = []
   const kickoffs: string[] = []
   let atHome = true
 
@@ -129,6 +130,7 @@ export function transformElement(
     const opponentId = isHome ? fixture.team_a : fixture.team_h
     const opponent = bootstrap.teams.find((t) => t.id === opponentId)
     opponents.push(opponent?.name ?? "Unknown")
+    opponentAbbrevs.push(opponent?.short_name ?? "???")
     kickoffs.push(fixture.kickoff_time)
     if (!isHome) atHome = false
   }
@@ -183,6 +185,7 @@ export function transformElement(
 
     fixtureCount: teamFixtures.length,
     opponents,
+    opponentAbbrevs,
     kickoffs,
     atHome,
   }

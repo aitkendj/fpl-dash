@@ -218,6 +218,7 @@ console.log("\nApplying projections to players")
     expectedPointsSource: "fpl",
     fixtureCount: 1,
     opponents: ["Chelsea"],
+    opponentAbbrevs: ["CHE"],
     kickoffs: ["2026-11-21T12:30:00Z"],
     atHome: true,
   }

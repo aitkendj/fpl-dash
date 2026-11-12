@@ -104,6 +104,8 @@ export interface DashboardPlayer {
   fixtureCount: number
   /** Opponent club names, one per fixture. */
   opponents: string[]
+  /** Opponent club abbreviations, one per fixture. */
+  opponentAbbrevs: string[]
   /** Kickoff times, one per fixture. */
   kickoffs: string[]
   /** True when the player is at home in every fixture. */

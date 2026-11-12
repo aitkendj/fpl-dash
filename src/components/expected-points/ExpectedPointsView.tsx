@@ -10,10 +10,9 @@ import {
   Card,
   CardHeader,
   CardBody,
-  SectionHeader,
   PageHeader,
 } from "@/components/ui/Card"
-import { Badge, PositionBadge, ClubBadge } from "@/components/ui/Badge"
+import { Badge, PositionBadge } from "@/components/ui/Badge"
 import { Button, Select } from "@/components/ui/Button"
 import {
   Table,
@@ -28,31 +27,11 @@ import { ModelBadge, OfficialBadge } from "@/components/system/SourceBanner"
 
 type SortKey = "sidelinequant" | "fpl" | "price" | "minutes" | "name"
 
-const POSITIONS: {
-  position: FPLPosition
-  title: string
-  description: string
-}[] = [
-  {
-    position: "GK",
-    title: "Goalkeepers",
-    description: "Two goalkeepers in the squad",
-  },
-  {
-    position: "DEF",
-    title: "Defenders",
-    description: "Five defenders in the squad",
-  },
-  {
-    position: "MID",
-    title: "Midfielders",
-    description: "Five midfielders in the squad",
-  },
-  {
-    position: "FWD",
-    title: "Attackers",
-    description: "Three attackers in the squad",
-  },
+const POSITIONS: { position: FPLPosition; title: string }[] = [
+  { position: "GK", title: "Goalkeepers" },
+  { position: "DEF", title: "Defenders" },
+  { position: "MID", title: "Midfielders" },
+  { position: "FWD", title: "Attackers" },
 ]
 
 export function ExpectedPointsView({
@@ -210,7 +189,7 @@ export function ExpectedPointsView({
                     <Th align="center">Opponent</Th>
                     <Th align="center">Price</Th>
                     <Th align="center">xMins</Th>
-                    <Th align="center">Start</Th>
+                    <Th dense align="center">Start</Th>
                     <Th align="center" className="pr-6">
                       xPts
                     </Th>
@@ -327,142 +306,144 @@ export function ExpectedPointsView({
       </Card>
 
       {/* Position tables */}
-      {POSITIONS.map(({ position, title, description }) => {
-        const rows = filtered.filter((player) => player.position === position)
+      <div className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-4">
+        {POSITIONS.map(({ position, title }) => {
+          const rows = filtered.filter((player) => player.position === position)
 
-        return (
-          <section key={position}>
-            <SectionHeader
-              title={title}
-              description={`${rows.length} player${rows.length === 1 ? "" : "s"} · ${description}`}
-              action={<ModelBadge />}
-            />
-            <Card className="overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table className="min-w-[860px]">
-                  <THead>
-                    <tr>
-                      <SortableTh
-                        className="pl-5"
-                        active={sortKey === "name"}
-                        asc={sortAsc}
-                        onClick={() => toggleSort("name")}
-                      >
-                        Player
-                      </SortableTh>
-                      <Th align="center">Club</Th>
-                      <SortableTh
-                        align="center"
-                        active={sortKey === "sidelinequant"}
-                        asc={sortAsc}
-                        onClick={() => toggleSort("sidelinequant")}
-                      >
-                        xPts
-                      </SortableTh>
-                      <SortableTh
-                        align="center"
-                        active={sortKey === "fpl"}
-                        asc={sortAsc}
-                        onClick={() => toggleSort("fpl")}
-                      >
-                        FPL xPts
-                      </SortableTh>
-                      <SortableTh
-                        align="center"
-                        active={sortKey === "minutes"}
-                        asc={sortAsc}
-                        onClick={() => toggleSort("minutes")}
-                      >
-                        xMins
-                      </SortableTh>
-                      <Th align="center">Start</Th>
-                      <Th className="pr-5">Fixture</Th>
-                    </tr>
-                  </THead>
-                  <TBody>
-                    {rows.map((player) => {
-                      const projection = player.sidelineQuantProjection
-                      const inSquad = squadIds.has(player.id)
-                      return (
-                        <Tr
-                          key={player.id}
-                          className={cn(
-                            inSquad && "bg-positive-wash/30"
-                          )}
+          return (
+            <section key={position} className="min-w-0">
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <div className="min-w-0">
+                  <h2 className="text-md font-semibold tracking-tight text-ink">
+                    {title}
+                  </h2>
+                  <p className="mt-0.5 text-2xs text-ink-tertiary">
+                    {rows.length} player{rows.length === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <ModelBadge />
+              </div>
+
+              <Card className="overflow-hidden">
+                <div className="max-h-[460px] overflow-auto">
+                  <Table className="min-w-[330px]">
+                    <THead className="sticky top-0 z-10">
+                      <tr>
+                        <SortableTh
+                          dense
+                          className="pl-2"
+                          active={sortKey === "name"}
+                          asc={sortAsc}
+                          onClick={() => toggleSort("name")}
                         >
-                          <Td className="pl-5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-ink">
-                                {player.webName}
-                              </span>
-                              {inSquad && <Badge tone="positive">Squad</Badge>}
-                              {player.status !== "a" && (
-                                <Badge tone="negative">
-                                  {player.status === "i"
-                                    ? "Injured"
-                                    : player.status === "d"
-                                      ? "Doubtful"
-                                      : player.status === "s"
-                                        ? "Suspended"
-                                        : "Unknown"}
+                          Player
+                        </SortableTh>
+                        <SortableTh
+                          dense
+                          align="center"
+                          active={sortKey === "sidelinequant"}
+                          asc={sortAsc}
+                          onClick={() => toggleSort("sidelinequant")}
+                        >
+                          xPts
+                        </SortableTh>
+                        <SortableTh
+                          dense
+                          align="center"
+                          active={sortKey === "fpl"}
+                          asc={sortAsc}
+                          onClick={() => toggleSort("fpl")}
+                        >
+                          FPL
+                        </SortableTh>
+                        <SortableTh
+                          dense
+                          align="center"
+                          active={sortKey === "minutes"}
+                          asc={sortAsc}
+                          onClick={() => toggleSort("minutes")}
+                        >
+                          Mins
+                        </SortableTh>
+                        <Th align="center">Start</Th>
+                        <Th dense className="pr-2">Fixture</Th>
+                      </tr>
+                    </THead>
+                    <TBody>
+                      {rows.map((player) => {
+                        const projection = player.sidelineQuantProjection
+                        const inSquad = squadIds.has(player.id)
+                        return (
+                          <Tr
+                            key={player.id}
+                            className={cn(
+                              inSquad && "bg-positive-wash/30"
+                            )}
+                          >
+                            <Td dense className="pl-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-surface-sunken text-[8px] font-bold text-ink-secondary">
+                                  {player.clubAbbrev}
+                                </span>
+                                <span className="truncate text-xs font-medium text-ink">
+                                  {player.webName}
+                                </span>
+                                {inSquad && (
+                                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-positive" />
+                                )}
+                              </div>
+                            </Td>
+                            <Td
+                              dense
+                              align="center"
+                              numeric
+                              className="text-xs font-semibold text-model"
+                            >
+                              {player.expectedPoints.toFixed(1)}
+                            </Td>
+                            <Td dense align="center" numeric className="text-xs">
+                              {player.fplProjection?.expectedPoints?.toFixed(1) ??
+                                "—"}
+                            </Td>
+                            <Td dense align="center" numeric className="text-xs">
+                              {projection?.expectedMinutes ?? "—"}
+                            </Td>
+                            <Td dense align="center" numeric className="text-xs">
+                              {projection?.startProbability !== undefined
+                                ? `${Math.round(projection.startProbability * 100)}%`
+                                : "—"}
+                            </Td>
+                            <Td dense className="pr-2 text-xs text-ink-secondary">
+                              {player.opponentAbbrevs.length > 0
+                                ? `vs ${player.opponentAbbrevs.join(" + ")}`
+                                : "—"}
+                              {player.fixtureCount > 1 && (
+                                <Badge tone="caution" className="ml-1">
+                                  DGW
                                 </Badge>
                               )}
-                            </div>
-                          </Td>
-                          <Td align="center">
-                            <span className="inline-flex items-center gap-2 text-ink-secondary">
-                              <ClubBadge code={player.clubAbbrev} />
-                            </span>
-                          </Td>
-                          <Td
-                            align="center"
-                            numeric
-                            className="font-semibold text-model"
+                            </Td>
+                          </Tr>
+                        )
+                      })}
+                      {rows.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="px-3 py-12 text-center text-xs text-ink-tertiary"
                           >
-                            {player.expectedPoints.toFixed(1)}
-                          </Td>
-                          <Td align="center" numeric>
-                            {player.fplProjection?.expectedPoints?.toFixed(1) ??
-                              "—"}
-                          </Td>
-                          <Td align="center" numeric>
-                            {projection?.expectedMinutes ?? "—"}
-                          </Td>
-                          <Td align="center" numeric>
-                            {projection?.startProbability !== undefined
-                              ? `${Math.round(projection.startProbability * 100)}%`
-                              : "—"}
-                          </Td>
-                          <Td className="pr-5 text-ink-secondary">
-                            {player.opponents.length > 0
-                              ? player.opponents.join(" + ")
-                              : "—"}
-                            {player.fixtureCount > 1 && (
-                              <Badge tone="caution" className="ml-1.5">
-                                DGW
-                              </Badge>
-                            )}
-                          </Td>
-                        </Tr>
-                      )
-                    })}
-                    {rows.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="px-5 py-12 text-center text-sm text-ink-tertiary"
-                        >
-                          No {title.toLowerCase()} match these filters.
-                        </td>
-                      </tr>
-                    )}
-                  </TBody>
-                </Table>
-              </div>
-            </Card>
-          </section>
-        )
-      })}
+                            No {title.toLowerCase()} match these filters.
+                          </td>
+                        </tr>
+                      )}
+                    </TBody>
+                  </Table>
+                </div>
+              </Card>
+            </section>
+          )
+        })}
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
         <p className="text-2xs text-ink-tertiary">

@@ -20,9 +20,9 @@ import {
   PageHeader,
   SectionHeader,
 } from "@/components/ui/Card"
-import { StatTile } from "@/components/ui/StatTile"
+import { StatTile, DeltaText } from "@/components/ui/StatTile"
 import { Badge, PositionBadge, CaptainBadge } from "@/components/ui/Badge"
-import { SegmentedControl } from "@/components/ui/Button"
+import { SegmentedControl, Select } from "@/components/ui/Button"
 import { Table, THead, TBody, Th, Td, Tr } from "@/components/ui/Table"
 import { Pitch, type FormationSlot } from "@/components/my-team/Pitch"
 import { SeasonCharts } from "@/components/season-overview/SeasonCharts"
@@ -59,14 +59,39 @@ export function MyTeamView({
   const captain = squad.find((p) => p.isCaptain)
   const viceCaptain = squad.find((p) => p.isViceCaptain)
 
+  /**
+   * Captain selection.
+   *
+   * Defaults to the armband FPL actually has, but can be overridden so
+   * the effect of a captaincy change can be modelled before making it.
+   * Changing the captain moves the 2x multiplier from one player to
+   * another, so the difference is simply the gap between their
+   * projections.
+   */
+  const [captainChoice, setCaptainChoice] = useState<string>("")
+  const [viceChoice, setViceChoice] = useState<string>("")
+
+  const effectiveCaptain =
+    squad.find((p) => p.id === Number(captainChoice)) ?? captain
+  const effectiveVice =
+    squad.find((p) => p.id === Number(viceChoice)) ?? viceCaptain
+
+  const epsFor = (captainId?: number) =>
+    teamExpectedPoints(
+      squad.map((player) => ({
+        id: player.id,
+        expectedPoints: player.expectedPoints,
+      })),
+      captainId
+    )
+
+  const epsActual = epsFor(captain?.id)
+  const epsSelected = epsFor(effectiveCaptain?.id)
+  const epsDelta = epsSelected - epsActual
+  const isOverridden = effectiveCaptain?.id !== captain?.id
+
   // Team expected points, captaincy weighted
-  const teamExpected = teamExpectedPoints(
-    squad.map((player) => ({
-      id: player.id,
-      expectedPoints: player.expectedPoints,
-    })),
-    captain?.id
-  )
+  const teamExpected = epsSelected
 
   const latestPoints = manager?.eventPoints ?? 0
   const previousPoints = manager?.previousGameweekPoints ?? 0
@@ -173,18 +198,118 @@ export function MyTeamView({
               action={<ModelBadge />}
             />
             <CardBody>
-              <p className="display-numeral text-5xl text-ink">
-                {teamExpected.toFixed(1)}
-              </p>
+              <div className="flex items-baseline justify-between gap-4">
+                <p className="display-numeral text-5xl text-ink">
+                  {teamExpected.toFixed(1)}
+                </p>
+                {isOverridden && (
+                  <span className="text-right">
+                    <span className="block text-2xs uppercase tracking-[0.09em] text-ink-tertiary">
+                      vs actual
+                    </span>
+                    <DeltaText value={epsDelta} showIcon className="text-sm" />
+                  </span>
+                )}
+              </div>
               <p className="mt-2 text-sm text-ink-tertiary">
                 Expected points across all {squad.length} squad players
               </p>
+
+              {/* Captain selection */}
+              <div className="mt-5 space-y-3 border-t border-line pt-4">
+                <p className="eyebrow">Captain selection</p>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <label
+                      className="mb-1 block text-2xs text-ink-tertiary"
+                      htmlFor="captain-select"
+                    >
+                      Captain
+                    </label>
+                    <Select
+                      id="captain-select"
+                      value={effectiveCaptain?.id ?? ""}
+                      onValueChange={setCaptainChoice}
+                      options={squad
+                        .slice()
+                        .sort((a, b) => b.expectedPoints - a.expectedPoints)
+                        .map((player) => ({
+                          value: String(player.id),
+                          label: `${player.webName} · ${player.expectedPoints.toFixed(1)}`,
+                        }))}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="mb-1 block text-2xs text-ink-tertiary"
+                      htmlFor="vice-select"
+                    >
+                      Vice-captain
+                    </label>
+                    <Select
+                      id="vice-select"
+                      value={effectiveVice?.id ?? ""}
+                      onValueChange={setViceChoice}
+                      options={squad
+                        .slice()
+                        .sort((a, b) => b.expectedPoints - a.expectedPoints)
+                        .map((player) => ({
+                          value: String(player.id),
+                          label: `${player.webName} · ${player.expectedPoints.toFixed(1)}`,
+                        }))}
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-ink-tertiary">
+                  {isOverridden ? (
+                    <>
+                      FPL has{" "}
+                      <span className="font-medium text-ink-secondary">
+                        {captain?.webName}
+                      </span>{" "}
+                      as captain ({epsActual.toFixed(1)} team xPts). Your
+                      selection gives{" "}
+                      <span className="font-medium text-ink-secondary">
+                        {epsSelected.toFixed(1)}
+                      </span>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Captain{" "}
+                      <span className="font-medium text-ink-secondary">
+                        {effectiveCaptain?.webName}
+                      </span>{" "}
+                      and vice{" "}
+                      <span className="font-medium text-ink-secondary">
+                        {effectiveVice?.webName}
+                      </span>
+                      , as picked in FPL. Changing the captain moves the 2×
+                      multiplier.
+                    </>
+                  )}
+                </p>
+
+                <p className="text-xs text-ink-tertiary">
+                  If you sold your captain,{" "}
+                  <span className="font-medium text-ink-secondary">
+                    {effectiveVice?.webName}
+                  </span>{" "}
+                  would be promoted and gain{" "}
+                  <span className="font-medium text-positive">
+                    +{(effectiveVice?.expectedPoints ?? 0).toFixed(1)} pts
+                  </span>
+                  .
+                </p>
+              </div>
 
               <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-2.5 border-t border-line pt-4 text-sm">
                 <Row label="Squad size" value={`${squad.length} players`} />
                 <Row
                   label="Captain bonus"
-                  value={`+${(captain?.expectedPoints ?? 0).toFixed(1)} pts`}
+                  value={`+${(effectiveCaptain?.expectedPoints ?? 0).toFixed(1)} pts`}
                   tone="positive"
                 />
                 <Row
@@ -201,10 +326,7 @@ export function MyTeamView({
                   label="Transfers made"
                   value={`${manager?.totalTransfers ?? 0}`}
                 />
-                <Row
-                  label="Free transfers"
-                  value="2 remaining"
-                />
+                <Row label="Free transfers" value="2 remaining" />
               </dl>
             </CardBody>
           </Card>
