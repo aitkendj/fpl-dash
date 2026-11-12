@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { connection } from "next/server"
 import { loadDashboardSnapshot } from "@/lib/server/snapshot"
 
 /**
@@ -7,9 +8,24 @@ import { loadDashboardSnapshot } from "@/lib/server/snapshot"
  * Reports the health of each external source and a summary of what was
  * retrieved. Useful for confirming the data is genuinely live, and for
  * spotting when a feed is failing.
+ *
+ * Disabled by default because it exposes the manager's team, rank and
+ * the full player pool in machine-readable form. Enable it locally with:
+ *
+ *   FPL_DIAGNOSTICS=1 npm run dev
+ *
+ * or set the variable in your hosting provider's environment settings.
  */
 
 export async function GET() {
+  // Evaluate per request rather than at build time, so the flag can be
+  // toggled in the hosting environment without a rebuild.
+  await connection()
+
+  if (process.env.FPL_DIAGNOSTICS !== "1") {
+    return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 })
+  }
+
   const started = Date.now()
 
   try {
@@ -18,6 +34,8 @@ export async function GET() {
     return NextResponse.json({
       ok: snapshot.status.complete,
       durationMs: Date.now() - started,
+      origin: snapshot.origin,
+      retrievedAt: snapshot.retrievedAt,
       manager: snapshot.manager,
       squadSize: snapshot.squad.length,
       playerCount: snapshot.players.length,

@@ -71,6 +71,18 @@ npm start
 
 The app is a standard Next.js application and deploys to any platform that supports Node or Next.js. There is no database, no server-side state and no environment configuration.
 
+### Optional environment variables
+
+None are required. One is available:
+
+| Variable | Purpose |
+| --- | --- |
+| `FPL_DIAGNOSTICS` | Set to `1` to enable the `/api/data-status` diagnostics route. Unset by default, so it returns 404 in production rather than exposing your team and the full player pool in machine-readable form. |
+
+```bash
+FPL_DIAGNOSTICS=1 npm run dev
+```
+
 ### Deploying to Vercel
 
 ```bash

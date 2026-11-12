@@ -64,16 +64,13 @@ export function MyTeamView({
    *
    * Defaults to the armband FPL actually has, but can be overridden so
    * the effect of a captaincy change can be modelled before making it.
-   * Changing the captain moves the 2x multiplier from one player to
-   * another, so the difference is the gap between their projections.
+   * The captain receives the 2x multiplier, so the team total moves with
+   * the selection.
    */
   const [captainChoice, setCaptainChoice] = useState<string>("")
-  const [viceChoice, setViceChoice] = useState<string>("")
 
   const effectiveCaptain =
     squad.find((p) => p.id === Number(captainChoice)) ?? captain
-  const effectiveVice =
-    squad.find((p) => p.id === Number(viceChoice)) ?? viceCaptain
 
   const epsFor = (captainId?: number) =>
     teamExpectedPoints(
@@ -168,147 +165,6 @@ export function MyTeamView({
         />
       </div>
 
-      {/* Projected return — full width */}
-      <Card>
-        <CardHeader
-          title="Projected return"
-          description="Next gameweek, captaincy weighted"
-          action={<ModelBadge />}
-        />
-        <CardBody>
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
-            {/* Headline figure and budget */}
-            <div>
-              <div className="flex items-baseline justify-between gap-4">
-                <p className="display-numeral text-6xl text-ink">
-                  {teamExpected.toFixed(1)}
-                </p>
-                {isOverridden && (
-                  <span className="text-right">
-                    <span className="block text-2xs uppercase tracking-[0.09em] text-ink-tertiary">
-                      vs actual
-                    </span>
-                    <DeltaText
-                      value={epsDelta}
-                      showIcon
-                      className="text-sm"
-                    />
-                  </span>
-                )}
-              </div>
-              <p className="mt-2 text-sm text-ink-tertiary">
-                Expected points across all {squad.length} squad players
-              </p>
-
-              <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-2.5 border-t border-line pt-4 text-sm">
-                <Row label="Squad size" value={`${squad.length} players`} />
-                <Row
-                  label="Captain bonus"
-                  value={`+${(effectiveCaptain?.expectedPoints ?? 0).toFixed(1)} pts`}
-                  tone="positive"
-                />
-                <Row
-                  label="Bench contribution"
-                  value={`${substitutes
-                    .reduce((sum, p) => sum + p.expectedPoints, 0)
-                    .toFixed(1)} pts`}
-                />
-                <Row
-                  label="Money in bank"
-                  value={`£${(manager?.bank ?? 0).toFixed(1)}m`}
-                />
-                <Row
-                  label="Team value"
-                  value={`£${(manager?.teamValue ?? 0).toFixed(1)}m`}
-                />
-                <Row
-                  label="Transfers made"
-                  value={`${manager?.totalTransfers ?? 0}`}
-                />
-              </dl>
-            </div>
-
-            {/* Captain selection */}
-            <div className="lg:border-l lg:border-line lg:pl-8">
-              <p className="eyebrow mb-3">Captain selection</p>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label
-                    className="mb-1 block text-2xs text-ink-tertiary"
-                    htmlFor="captain-select"
-                  >
-                    Captain
-                  </label>
-                  <Select
-                    id="captain-select"
-                    value={effectiveCaptain?.id ?? ""}
-                    onValueChange={setCaptainChoice}
-                    options={captainOptions}
-                  />
-                </div>
-                <div>
-                  <label
-                    className="mb-1 block text-2xs text-ink-tertiary"
-                    htmlFor="vice-select"
-                  >
-                    Vice-captain
-                  </label>
-                  <Select
-                    id="vice-select"
-                    value={effectiveVice?.id ?? ""}
-                    onValueChange={setViceChoice}
-                    options={captainOptions}
-                  />
-                </div>
-              </div>
-
-              <p className="mt-3 text-xs text-ink-tertiary">
-                {isOverridden ? (
-                  <>
-                    FPL has{" "}
-                    <span className="font-medium text-ink-secondary">
-                      {captain?.webName}
-                    </span>{" "}
-                    as captain ({epsActual.toFixed(1)} team xPts). Your
-                    selection gives{" "}
-                    <span className="font-medium text-ink-secondary">
-                      {epsSelected.toFixed(1)}
-                    </span>
-                    .
-                  </>
-                ) : (
-                  <>
-                    Captain{" "}
-                    <span className="font-medium text-ink-secondary">
-                      {effectiveCaptain?.webName}
-                    </span>{" "}
-                    and vice{" "}
-                    <span className="font-medium text-ink-secondary">
-                      {effectiveVice?.webName}
-                    </span>
-                    , as picked in FPL. Changing the captain moves the 2×
-                    multiplier.
-                  </>
-                )}
-              </p>
-
-              <p className="mt-1.5 text-xs text-ink-tertiary">
-                If you sold your captain,{" "}
-                <span className="font-medium text-ink-secondary">
-                  {effectiveVice?.webName}
-                </span>{" "}
-                would be promoted and gain{" "}
-                <span className="font-medium text-positive">
-                  +{(effectiveVice?.expectedPoints ?? 0).toFixed(1)} pts
-                </span>
-                .
-              </p>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
-
       {/* Starting XI + squad, aligned */}
       <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         {/* Starting XI with bench */}
@@ -340,8 +196,42 @@ export function MyTeamView({
         <Card data-check="squad" className="flex flex-col overflow-hidden">
           <CardHeader
             title="Squad"
-            description="All fifteen players with actual form and modelled projection"
-            action={<ModelBadge />}
+            description={`All fifteen players · £${(manager?.bank ?? 0).toFixed(1)}m in the bank · £${(manager?.teamValue ?? 0).toFixed(1)}m squad value · ${manager?.totalTransfers ?? 0} transfers made`}
+            action={
+              <div className="flex items-end gap-5">
+                {/* Captain selection */}
+                <div className="w-44">
+                  <label
+                    className="eyebrow mb-1 block"
+                    htmlFor="captain-select"
+                  >
+                    Captain
+                  </label>
+                  <Select
+                    id="captain-select"
+                    value={effectiveCaptain?.id ?? ""}
+                    onValueChange={setCaptainChoice}
+                    options={captainOptions}
+                  />
+                </div>
+
+                {/* Team total, captaincy weighted */}
+                <div className="text-right">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span className="eyebrow">Team xPts</span>
+                    <ModelBadge />
+                  </div>
+                  <div className="mt-1 flex items-baseline justify-end gap-2">
+                    {isOverridden && (
+                      <DeltaText value={epsDelta} showIcon className="text-sm" />
+                    )}
+                    <p className="display-numeral text-3xl text-ink">
+                      {teamExpected.toFixed(1)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            }
           />
           <div className="min-h-0 flex-1 overflow-auto">
             <Table className="min-w-[640px]">
@@ -360,69 +250,83 @@ export function MyTeamView({
                 </tr>
               </THead>
               <TBody>
-                {squad.map((player) => (
-                  <Tr key={player.id}>
-                    <Td className="pl-5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-ink">
-                          {player.webName}
-                        </span>
-                        {player.isCaptain && <CaptainBadge />}
-                        {player.isViceCaptain && (
-                          <CaptainBadge kind="vice" />
-                        )}
-                        {player.isSubstitute && (
-                          <Badge tone="outline" className="ml-0.5">
-                            Sub
+                {squad.map((player) => {
+                  const isEffectiveCaptain =
+                    effectiveCaptain?.id === player.id
+                  return (
+                    <Tr key={player.id}>
+                      <Td className="pl-5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-ink">
+                            {player.webName}
+                          </span>
+                          {player.isCaptain && <CaptainBadge />}
+                          {player.isViceCaptain && (
+                            <CaptainBadge kind="vice" />
+                          )}
+                          {player.isSubstitute && (
+                            <Badge tone="outline" className="ml-0.5">
+                              Sub
+                            </Badge>
+                          )}
+                        </div>
+                      </Td>
+                      <Td align="center">
+                        <PositionBadge position={player.position} />
+                      </Td>
+                      <Td align="center" className="text-ink-secondary">
+                        {player.opponents.length > 0
+                          ? player.opponents.join(" + ")
+                          : "—"}
+                        {player.fixtureCount > 1 && (
+                          <Badge tone="caution" className="ml-1.5">
+                            2 fixtures
                           </Badge>
                         )}
-                      </div>
-                    </Td>
-                    <Td align="center">
-                      <PositionBadge position={player.position} />
-                    </Td>
-                    <Td align="center" className="text-ink-secondary">
-                      {player.opponents.length > 0
-                        ? player.opponents.join(" + ")
-                        : "—"}
-                      {player.fixtureCount > 1 && (
-                        <Badge tone="caution" className="ml-1.5">
-                          2 fixtures
-                        </Badge>
-                      )}
-                    </Td>
-                    <Td align="center" numeric>
-                      £{(player.priceTenths / 10).toFixed(1)}m
-                    </Td>
-                    <Td
-                      align="center"
-                      numeric
-                      className={cn(
-                        "font-medium",
-                        player.lastGameweekPoints >= 6
-                          ? "text-positive"
-                          : player.lastGameweekPoints <= 2
-                            ? "text-negative"
-                            : "text-ink"
-                      )}
-                    >
-                      {player.lastGameweekPoints}
-                    </Td>
-                    <Td align="center" numeric>
-                      {player.totalPoints}
-                    </Td>
-                    <Td align="center" numeric>
-                      {player.form.toFixed(1)}
-                    </Td>
-                    <Td
-                      align="center"
-                      numeric
-                      className="pr-5 font-semibold text-model"
-                    >
-                      {player.expectedPoints.toFixed(1)}
-                    </Td>
-                  </Tr>
-                ))}
+                      </Td>
+                      <Td align="center" numeric>
+                        £{(player.priceTenths / 10).toFixed(1)}m
+                      </Td>
+                      <Td
+                        align="center"
+                        numeric
+                        className={cn(
+                          "font-medium",
+                          player.lastGameweekPoints >= 6
+                            ? "text-positive"
+                            : player.lastGameweekPoints <= 2
+                              ? "text-negative"
+                              : "text-ink"
+                        )}
+                      >
+                        {player.lastGameweekPoints}
+                      </Td>
+                      <Td align="center" numeric>
+                        {player.totalPoints}
+                      </Td>
+                      <Td align="center" numeric>
+                        {player.form.toFixed(1)}
+                      </Td>
+                      <Td
+                        align="center"
+                        numeric
+                        className={cn(
+                          "pr-5 font-semibold",
+                          isEffectiveCaptain ? "text-model" : "text-model"
+                        )}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {player.expectedPoints.toFixed(1)}
+                          {isEffectiveCaptain && (
+                            <span className="rounded-pill bg-model-wash px-1 text-2xs font-bold text-model">
+                              2×
+                            </span>
+                          )}
+                        </span>
+                      </Td>
+                    </Tr>
+                  )
+                })}
               </TBody>
             </Table>
           </div>
@@ -437,31 +341,6 @@ export function MyTeamView({
         />
         <SeasonCharts history={history} />
       </section>
-    </div>
-  )
-}
-
-function Row({
-  label,
-  value,
-  tone,
-}: {
-  label: string
-  value: string
-  tone?: "positive"
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-ink-secondary">{label}</dt>
-      <dd
-        data-numeric
-        className={cn(
-          "font-medium",
-          tone === "positive" ? "text-positive" : "text-ink"
-        )}
-      >
-        {value}
-      </dd>
     </div>
   )
 }
