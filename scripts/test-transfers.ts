@@ -299,6 +299,37 @@ console.log("\nTeam expected points")
   )
 }
 
+console.log("\nReplacement pool is filtered by position")
+{
+  // The transfer planner only offers replacements in the same position
+  // as the player being sold.
+  const midfielder = squad.find((p) => p.position === "MID" && !p.isCaptain)!
+  const midReplacements = marketOnly.filter(
+    (p) => p.position === midfielder.position
+  )
+  check(
+    "midfielders have midfield replacements available",
+    midReplacements.length > 0,
+    `${midReplacements.length}`
+  )
+  check(
+    "no replacement is in the same position but already owned",
+    midReplacements.every(
+      (p) => !squad.some((member) => member.id === p.id)
+    )
+  )
+
+  const keeper = squad.find((p) => p.position === "GK")!
+  const keeperReplacements = marketOnly.filter(
+    (p) => p.position === keeper.position
+  )
+  check(
+    "goalkeepers have goalkeeper replacements available",
+    keeperReplacements.length > 0,
+    `${keeperReplacements.length}`
+  )
+}
+
 console.log(
   failures === 0
     ? "\nAll transfer tests passed.\n"

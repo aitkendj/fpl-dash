@@ -4,7 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Users,
-  TrendingUp,
   Zap,
   ArrowLeftRight,
   Database,
@@ -21,16 +20,10 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   {
-    label: "My Team",
+    label: "Team Overview",
     href: "/",
     icon: Users,
-    description: "Squad & formation",
-  },
-  {
-    label: "Season Overview",
-    href: "/season",
-    icon: TrendingUp,
-    description: "Rank & points",
+    description: "Squad, rank & points",
   },
   {
     label: "Expected Points",

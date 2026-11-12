@@ -1,10 +1,15 @@
 import type {
   DashboardPlayer,
   FplStatus,
+  ManagerSummary,
   Projection,
   SquadPlayer,
 } from "@/lib/model"
-import type { FplHistory, FplPicks } from "@/lib/server/types"
+import type {
+  FplEntry,
+  FplHistory,
+  FplPicks,
+} from "@/lib/server/types"
 import type { ReducedSqPayload, ReducedSqRow } from "@/lib/server/reduce"
 import type {
   ReducedBootstrap,
@@ -317,6 +322,13 @@ export function buildSquad(
 /* History                                                              */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Build the per-gameweek history rows.
+ *
+ * FPL reports the bank and squad value in tenths of a million, so
+ * `bank: 8` is £0.8m and `value: 1020` is £102m. They are converted
+ * to £m here so the interface never has to think about the unit.
+ */
 export function buildHistoryRows(history: FplHistory) {
   return history.current.map((row) => ({
     gameweek: row.event,
@@ -325,11 +337,50 @@ export function buildHistoryRows(history: FplHistory) {
     overallRank: row.overall_rank,
     rank: row.rank,
     percentileRank: row.percentile_rank,
-    bank: row.bank,
-    teamValue: row.value,
+    bank: row.bank / 10,
+    teamValue: row.value / 10,
     transfers: row.event_transfers,
     pointsOnBench: row.points_on_bench,
   }))
+}
+
+/**
+ * The manager's headline figures.
+ */
+export function buildManagerSummary({
+  entry,
+  currentEvent,
+  nextEvent,
+  seasonLength,
+  historyRows,
+}: {
+  entry: FplEntry
+  currentEvent: number
+  nextEvent: number
+  seasonLength: number
+  historyRows: ReturnType<typeof buildHistoryRows>
+}): ManagerSummary {
+  const previous =
+    historyRows.find((row) => row.gameweek === currentEvent - 1)
+
+  return {
+    teamId: entry.id,
+    name: entry.name,
+    currentGameweek: currentEvent,
+    nextGameweek: nextEvent,
+    seasonLength,
+    yearsActive: entry.years_active,
+    totalPoints: entry.summary_overall_points,
+    eventPoints: entry.summary_event_points,
+    previousGameweekPoints: previous?.points ?? 0,
+    overallRank: entry.summary_overall_rank,
+    eventRank: entry.summary_event_rank,
+    // FPL reports the bank and squad value in tenths of a million.
+    bank: entry.last_deadline_bank / 10,
+    teamValue: entry.last_deadline_value / 10,
+    totalTransfers: entry.last_deadline_total_transfers,
+    favouriteTeam: entry.favourite_team,
+  }
 }
 
 export { SQUAD_SLOT_LABELS }

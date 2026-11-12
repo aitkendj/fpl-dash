@@ -11,7 +11,11 @@ export default async function MyTeamPage() {
         status={snapshot.status}
         projectionGameweek={snapshot.projectionGameweek}
       />
-      <MyTeamView squad={snapshot.squad} manager={snapshot.manager} />
+      <MyTeamView
+        squad={snapshot.squad}
+        manager={snapshot.manager}
+        history={snapshot.history}
+      />
     </div>
   )
 }

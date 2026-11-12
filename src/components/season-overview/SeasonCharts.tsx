@@ -33,8 +33,10 @@ export function SeasonCharts({ history }: { history: GameweekHistoryRow[] }) {
       ? history.reduce((sum, row) => sum + row.points, 0) / history.length
       : 0
 
+  const tickInterval = Math.max(0, Math.floor(history.length / 8) - 1)
+
   return (
-    <div className="space-y-6">
+    <div className="grid gap-6 xl:grid-cols-2">
       {/* Rank journey */}
       <Card>
         <CardHeader
@@ -56,7 +58,7 @@ export function SeasonCharts({ history }: { history: GameweekHistoryRow[] }) {
                 <XAxis
                   dataKey="gameweek"
                   {...chartAxisProps}
-                  interval={Math.max(0, Math.floor(rankData.length / 8) - 1)}
+                  interval={tickInterval}
                   tickMargin={10}
                 />
                 <YAxis
@@ -131,7 +133,7 @@ export function SeasonCharts({ history }: { history: GameweekHistoryRow[] }) {
                 <XAxis
                   dataKey="gameweek"
                   {...chartAxisProps}
-                  interval={Math.max(0, Math.floor(pointsData.length / 8) - 1)}
+                  interval={tickInterval}
                   tickMargin={10}
                 />
                 <YAxis
@@ -174,81 +176,6 @@ export function SeasonCharts({ history }: { history: GameweekHistoryRow[] }) {
                 />
               </LineChart>
             </ResponsiveContainer>
-          </div>
-        </CardBody>
-      </Card>
-
-      {/* Season record */}
-      <Card>
-        <CardHeader title="Gameweek by gameweek" />
-        <CardBody className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-sm">
-              <thead>
-                <tr className="border-b border-line bg-surface-subtle/50">
-                  <th className="py-2 pl-5 text-left text-2xs font-semibold uppercase tracking-[0.09em] text-ink-tertiary">
-                    Gameweek
-                  </th>
-                  <th className="py-2 pr-4 text-right text-2xs font-semibold uppercase tracking-[0.09em] text-ink-tertiary">
-                    Points
-                  </th>
-                  <th className="py-2 pr-4 text-right text-2xs font-semibold uppercase tracking-[0.09em] text-ink-tertiary">
-                    Total
-                  </th>
-                  <th className="py-2 pr-4 text-right text-2xs font-semibold uppercase tracking-[0.09em] text-ink-tertiary">
-                    Rank
-                  </th>
-                  <th className="py-2 pr-4 text-right text-2xs font-semibold uppercase tracking-[0.09em] text-ink-tertiary">
-                    Transfers
-                  </th>
-                  <th className="py-2 pr-5 text-right text-2xs font-semibold uppercase tracking-[0.09em] text-ink-tertiary">
-                    Bench
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {[...history].reverse().map((row) => (
-                  <tr
-                    key={row.gameweek}
-                    className="transition-colors hover:bg-surface-subtle/40"
-                  >
-                    <td className="py-2.5 pl-5 font-medium text-ink">
-                      GW{row.gameweek}
-                    </td>
-                    <td
-                      data-numeric
-                      className="py-2.5 pr-4 text-right font-medium text-ink"
-                    >
-                      {row.points}
-                    </td>
-                    <td
-                      data-numeric
-                      className="py-2.5 pr-4 text-right text-ink-secondary"
-                    >
-                      {formatNumber(row.totalPoints)}
-                    </td>
-                    <td
-                      data-numeric
-                      className="py-2.5 pr-4 text-right text-ink-secondary"
-                    >
-                      {formatNumber(row.overallRank)}
-                    </td>
-                    <td
-                      data-numeric
-                      className="py-2.5 pr-4 text-right text-ink-secondary"
-                    >
-                      {row.transfers}
-                    </td>
-                    <td
-                      data-numeric
-                      className="py-2.5 pr-5 text-right text-ink-secondary"
-                    >
-                      {row.pointsOnBench}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </CardBody>
       </Card>

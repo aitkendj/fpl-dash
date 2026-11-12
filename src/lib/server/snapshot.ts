@@ -20,6 +20,7 @@ import {
   applyProjections,
   buildElementContext,
   buildHistoryRows,
+  buildManagerSummary,
   buildProjectionLookup,
   buildSquad,
   transformElement,
@@ -157,26 +158,17 @@ export async function loadDashboardSnapshot(
   }
 
   /* ---- Manager summary ------------------------------------------------ */
-  const manager: ManagerSummary | null = entry
-    ? {
-        teamId: entry.id,
-        name: entry.name,
-        currentGameweek: currentEvent,
-        nextGameweek: nextEvent,
-        seasonLength: bootstrap.events.length,
-        yearsActive: entry.years_active,
-        totalPoints: entry.summary_overall_points,
-        eventPoints: entry.summary_event_points,
-        overallRank: entry.summary_overall_rank,
-        eventRank: entry.summary_event_rank,
-        bank: entry.last_deadline_bank,
-        teamValue: entry.last_deadline_value,
-        totalTransfers: entry.last_deadline_total_transfers,
-        favouriteTeam: entry.favourite_team,
-      }
-    : null
-
   const historyRows = history ? buildHistoryRows(history) : []
+
+  const manager: ManagerSummary | null = entry
+    ? buildManagerSummary({
+        entry,
+        currentEvent,
+        nextEvent,
+        seasonLength: bootstrap.events.length,
+        historyRows,
+      })
+    : null
 
   return {
     manager,

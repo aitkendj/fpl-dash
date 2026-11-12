@@ -103,7 +103,8 @@ export function TransferPlannerView({
         !term ||
         player.webName.toLowerCase().includes(term) ||
         player.clubName.toLowerCase().includes(term)
-      const matchPos = !position || player.position === position
+      // A replacement must fill the same position as the player leaving.
+      const matchPos = sold ? player.position === sold.position : !position
       const matchClub = !club || String(player.team) === club
       const matchPrice =
         !maxPrice || player.priceTenths / 10 <= Number(maxPrice)
@@ -274,7 +275,7 @@ export function TransferPlannerView({
                 sold
                   ? `Replacing ${sold.webName} · £${(
                       sold.priceTenths / 10
-                    ).toFixed(1)}m`
+                    ).toFixed(1)}m · ${sold.position} only`
                   : "Select a player to sell first"
               }
               action={
@@ -303,7 +304,7 @@ export function TransferPlannerView({
                 />
               </div>
               <Select
-                value={position}
+                value={sold ? sold.position : position}
                 onValueChange={setPosition}
                 placeholder="All positions"
                 options={[
@@ -312,6 +313,7 @@ export function TransferPlannerView({
                   { value: "MID", label: "Midfielder" },
                   { value: "FWD", label: "Forward" },
                 ]}
+                disabled={Boolean(sold)}
               />
               <Select
                 value={club}

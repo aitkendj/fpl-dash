@@ -58,6 +58,7 @@ export function Select({
   className,
   id,
   ariaLabel,
+  disabled = false,
 }: {
   options: SelectOption[]
   value: string | number | ""
@@ -66,15 +67,21 @@ export function Select({
   className?: string
   id?: string
   ariaLabel?: string
+  disabled?: boolean
 }) {
   return (
     <div className={cn("relative", className)}>
       <select
         id={id}
         aria-label={ariaLabel}
+        disabled={disabled}
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
-        className="h-8.5 w-full appearance-none rounded-control border border-line-strong bg-surface pl-3 pr-8 text-sm text-ink transition-colors hover:bg-surface-subtle focus:border-ink focus:outline-none"
+        className={cn(
+          "h-8.5 w-full appearance-none rounded-control border border-line-strong bg-surface pl-3 pr-8 text-sm text-ink transition-colors focus:border-ink focus:outline-none",
+          disabled &&
+            "cursor-not-allowed border-line bg-surface-subtle text-ink-tertiary"
+        )}
       >
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((option) => (

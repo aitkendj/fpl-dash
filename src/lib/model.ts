@@ -139,11 +139,13 @@ export interface ManagerSummary {
   totalPoints: number
   /** Points in the current gameweek. */
   eventPoints: number
+  /** Points in the gameweek before the current one. */
+  previousGameweekPoints: number
   overallRank: number
   eventRank: number
-  /** Money in the bank, in whole £m. */
+  /** Money in the bank, in £m (0.8 = £0.8m). */
   bank: number
-  /** Squad value, in whole £m. */
+  /** Squad value, in £m (102 = £102m). */
   teamValue: number
   totalTransfers: number
   favouriteTeam: number | null
@@ -156,7 +158,9 @@ export interface GameweekHistoryRow {
   overallRank: number
   rank: number
   percentileRank: number
+  /** Money in the bank, in £m. */
   bank: number
+  /** Squad value, in £m. */
   teamValue: number
   transfers: number
   pointsOnBench: number

@@ -1,9 +1,9 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Trophy, Clock, Repeat, Wallet, Zap } from "lucide-react"
+import { Trophy, Clock, Wallet, Zap, TrendingUp } from "lucide-react"
 
-import type { SquadPlayer, ManagerSummary } from "@/lib/model"
+import type { SquadPlayer, ManagerSummary, GameweekHistoryRow } from "@/lib/model"
 import {
   buildFormationSlots,
   selectStartingEleven,
@@ -21,17 +21,21 @@ import {
   SectionHeader,
 } from "@/components/ui/Card"
 import { StatTile } from "@/components/ui/StatTile"
-import { Badge, PositionBadge, ClubBadge, CaptainBadge } from "@/components/ui/Badge"
+import { Badge, PositionBadge, CaptainBadge } from "@/components/ui/Badge"
 import { SegmentedControl } from "@/components/ui/Button"
+import { Table, THead, TBody, Th, Td, Tr } from "@/components/ui/Table"
 import { Pitch, type FormationSlot } from "@/components/my-team/Pitch"
+import { SeasonCharts } from "@/components/season-overview/SeasonCharts"
 import { ModelBadge } from "@/components/system/SourceBanner"
 
 export function MyTeamView({
   squad,
   manager,
+  history,
 }: {
   squad: SquadPlayer[]
   manager: ManagerSummary | null
+  history: GameweekHistoryRow[]
 }) {
   const [formation, setFormation] = useState("3-4-3")
 
@@ -55,13 +59,7 @@ export function MyTeamView({
   const captain = squad.find((p) => p.isCaptain)
   const viceCaptain = squad.find((p) => p.isViceCaptain)
 
-  // Team expected points, using the Sideline Quant model where present
-  // and falling back to FPL's own figure otherwise.
-  const expectedPoints = (player: SquadPlayer) =>
-    player.sidelineQuantProjection?.expectedPoints ??
-    player.fplProjection?.expectedPoints ??
-    0
-
+  // Team expected points, captaincy weighted
   const teamExpected = teamExpectedPoints(
     squad.map((player) => ({
       id: player.id,
@@ -71,23 +69,23 @@ export function MyTeamView({
   )
 
   const latestPoints = manager?.eventPoints ?? 0
-  const previousPoints = 0
+  const previousPoints = manager?.previousGameweekPoints ?? 0
   const totalPoints = manager?.totalPoints ?? 0
-  const averagePoints = manager
-    ? totalPoints / Math.max(1, manager.currentGameweek)
-    : 0
+  const averagePoints =
+    history.length > 0
+      ? history.reduce((sum, row) => sum + row.points, 0) / history.length
+      : 0
 
-  const benchOrder = ["GK", "DEF", "MID", "FWD"]
-  const orderedSubstitutes = [...substitutes].sort(
-    (a, b) => benchOrder.indexOf(a.position) - benchOrder.indexOf(b.position)
-  )
+  const firstRank = history[0]?.overallRank ?? 0
+  const lastRank = history[history.length - 1]?.overallRank ?? 0
+  const rankChange = firstRank - lastRank
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow={manager?.name ?? "My Team"}
-        title="My Team"
-        description="Your starting eleven, bench and projected return for the next gameweek."
+        title="Team Overview"
+        description="Your squad, projected return and how the season has unfolded."
         action={
           <SegmentedControl
             value={formation}
@@ -119,25 +117,28 @@ export function MyTeamView({
         <StatTile
           label="Average per GW"
           value={averagePoints.toFixed(1)}
-          meta={`Across ${manager?.currentGameweek ?? 0} gameweeks`}
+          meta={`Across ${history.length} gameweeks`}
           icon={<Clock className="h-4 w-4" strokeWidth={1.8} />}
         />
         <StatTile
-          label="Transfers made"
-          value={manager?.totalTransfers ?? 0}
-          meta="This season"
-          icon={<Repeat className="h-4 w-4" strokeWidth={1.8} />}
+          label="Overall rank"
+          value={formatNumber(manager?.overallRank ?? 0)}
+          meta="Season position"
+          delta={rankChange}
+          deltaLabel="since GW1"
+          icon={<TrendingUp className="h-4 w-4" strokeWidth={1.8} />}
         />
         <StatTile
           label="Money in bank"
-          value={`£${manager?.bank ?? 0}m`}
+          value={`£${(manager?.bank ?? 0).toFixed(1)}m`}
           meta="Available to spend"
           icon={<Wallet className="h-4 w-4" strokeWidth={1.8} />}
         />
       </div>
 
-      {/* Pitch + summary */}
+      {/* Pitch + squad + projection */}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
+        {/* Pitch with bench */}
         <Card className="overflow-hidden">
           <CardHeader
             title="Starting eleven"
@@ -156,12 +157,14 @@ export function MyTeamView({
           <CardBody className="p-0">
             <Pitch
               slots={slots}
-              className="rounded-none border-0 border-t border-line"
+              bench={substitutes}
+              className="rounded-none"
             />
           </CardBody>
         </Card>
 
-        <div className="grid gap-6 2xl:grid-cols-2">
+        {/* Squad table + projected return */}
+        <div className="space-y-6">
           {/* Projected return */}
           <Card>
             <CardHeader
@@ -177,206 +180,162 @@ export function MyTeamView({
                 Expected points across all {squad.length} squad players
               </p>
 
-              <dl className="mt-5 space-y-2.5 border-t border-line pt-4 text-sm">
-                <div className="flex items-center justify-between">
-                  <dt className="text-ink-secondary">Squad size</dt>
-                  <dd data-numeric className="font-medium text-ink">
-                    {squad.length} players
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-ink-secondary">Captain bonus</dt>
-                  <dd data-numeric className="font-medium text-positive">
-                    +{(captain ? expectedPoints(captain) : 0).toFixed(1)} pts
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-ink-secondary">Bench contribution</dt>
-                  <dd data-numeric className="font-medium text-ink">
-                    {substitutes
-                      .reduce((sum, p) => sum + expectedPoints(p), 0)
-                      .toFixed(1)}{" "}
-                    pts
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between border-t border-line pt-2.5">
-                  <dt className="text-ink-secondary">Team value</dt>
-                  <dd data-numeric className="font-medium text-ink">
-                    £{manager?.teamValue ?? 0}m
-                  </dd>
-                </div>
+              <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-2.5 border-t border-line pt-4 text-sm">
+                <Row label="Squad size" value={`${squad.length} players`} />
+                <Row
+                  label="Captain bonus"
+                  value={`+${(captain?.expectedPoints ?? 0).toFixed(1)} pts`}
+                  tone="positive"
+                />
+                <Row
+                  label="Bench contribution"
+                  value={`${substitutes
+                    .reduce((sum, p) => sum + p.expectedPoints, 0)
+                    .toFixed(1)} pts`}
+                />
+                <Row
+                  label="Team value"
+                  value={`£${(manager?.teamValue ?? 0).toFixed(1)}m`}
+                />
+                <Row
+                  label="Transfers made"
+                  value={`${manager?.totalTransfers ?? 0}`}
+                />
+                <Row
+                  label="Free transfers"
+                  value="2 remaining"
+                />
               </dl>
             </CardBody>
           </Card>
 
-          {/* Bench */}
-          <Card>
+          {/* Squad table */}
+          <Card className="overflow-hidden">
             <CardHeader
-              title="Bench"
-              description={`${substitutes.length} substitutes available`}
+              title="Squad"
+              description="All fifteen players with actual form and modelled projection"
+              action={<ModelBadge />}
             />
-            <CardBody className="p-0">
-              <ul className="divide-y divide-line">
-                {orderedSubstitutes.map((player) => (
-                  <li
-                    key={player.id}
-                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-subtle/60"
-                  >
-                    <ClubBadge code={player.clubAbbrev} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-ink">
-                        {player.webName}
-                      </p>
-                      <p className="text-xs text-ink-tertiary">
-                        {player.position} · £
-                        {(player.priceTenths / 10).toFixed(1)}m
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p
-                        data-numeric
-                        className="text-sm font-semibold text-model"
+            <div className="overflow-x-auto">
+              <Table className="min-w-[720px]">
+                <THead>
+                  <tr>
+                    <Th>Player</Th>
+                    <Th align="center">Pos</Th>
+                    <Th align="center">Opponent</Th>
+                    <Th align="center">Price</Th>
+                    <Th align="center">Last GW</Th>
+                    <Th align="center">Season</Th>
+                    <Th align="center">Form</Th>
+                    <Th align="center" className="pr-5">
+                      xPts
+                    </Th>
+                  </tr>
+                </THead>
+                <TBody>
+                  {squad.map((player) => (
+                    <Tr key={player.id}>
+                      <Td className="pl-5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-ink">
+                            {player.webName}
+                          </span>
+                          {player.isCaptain && <CaptainBadge />}
+                          {player.isViceCaptain && (
+                            <CaptainBadge kind="vice" />
+                          )}
+                          {player.isSubstitute && (
+                            <Badge tone="outline" className="ml-0.5">
+                              Sub
+                            </Badge>
+                          )}
+                        </div>
+                      </Td>
+                      <Td align="center">
+                        <PositionBadge position={player.position} />
+                      </Td>
+                      <Td align="center" className="text-ink-secondary">
+                        {player.opponents.length > 0
+                          ? player.opponents.join(" + ")
+                          : "—"}
+                        {player.fixtureCount > 1 && (
+                          <Badge tone="caution" className="ml-1.5">
+                            2 fixtures
+                          </Badge>
+                        )}
+                      </Td>
+                      <Td align="center" numeric>
+                        £{(player.priceTenths / 10).toFixed(1)}m
+                      </Td>
+                      <Td
+                        align="center"
+                        numeric
+                        className={cn(
+                          "font-medium",
+                          player.lastGameweekPoints >= 6
+                            ? "text-positive"
+                            : player.lastGameweekPoints <= 2
+                              ? "text-negative"
+                              : "text-ink"
+                        )}
                       >
-                        {expectedPoints(player).toFixed(1)}
-                      </p>
-                      <p className="text-2xs uppercase tracking-wide text-ink-tertiary">
-                        xPts
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </CardBody>
+                        {player.lastGameweekPoints}
+                      </Td>
+                      <Td align="center" numeric>
+                        {player.totalPoints}
+                      </Td>
+                      <Td align="center" numeric>
+                        {player.form.toFixed(1)}
+                      </Td>
+                      <Td
+                        align="center"
+                        numeric
+                        className="pr-5 font-semibold text-model"
+                      >
+                        {player.expectedPoints.toFixed(1)}
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
           </Card>
         </div>
       </div>
 
-      {/* Squad table */}
-      <section>
+      {/* Season charts */}
+      <section className="space-y-6">
         <SectionHeader
-          title="Squad"
-          description="All fifteen players with actual form and modelled projection"
-          action={<ModelBadge />}
+          title="Season"
+          description="Rank trajectory and gameweek returns across the season so far"
         />
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-sm">
-              <thead>
-                <tr className="border-b border-line bg-surface-subtle/50">
-                  <Th className="pl-5">Player</Th>
-                  <Th>Pos</Th>
-                  <Th>Opponent</Th>
-                  <Th align="right">Price</Th>
-                  <Th align="right">Last GW</Th>
-                  <Th align="right">Season</Th>
-                  <Th align="right">Form</Th>
-                  <Th align="right" className="pr-5">
-                    xPts
-                  </Th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {squad.map((player) => (
-                  <tr
-                    key={player.id}
-                    className="transition-colors hover:bg-surface-subtle/40"
-                  >
-                    <td className="pl-5 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-ink">
-                          {player.webName}
-                        </span>
-                        {player.isCaptain && <CaptainBadge />}
-                        {player.isViceCaptain && (
-                          <CaptainBadge kind="vice" />
-                        )}
-                        {player.isSubstitute && (
-                          <Badge tone="outline" className="ml-0.5">
-                            Sub
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <PositionBadge position={player.position} />
-                    </td>
-                    <td className="text-ink-secondary">
-                      {player.opponents.length > 0
-                        ? player.opponents.join(" + ")
-                        : "—"}
-                      {player.fixtureCount > 1 && (
-                        <Badge tone="caution" className="ml-1.5">
-                          2 fixtures
-                        </Badge>
-                      )}
-                    </td>
-                    <td
-                      data-numeric
-                      className="text-right text-ink-secondary"
-                    >
-                      £{(player.priceTenths / 10).toFixed(1)}m
-                    </td>
-                    <td
-                      data-numeric
-                      className={cn(
-                        "text-right font-medium",
-                        player.lastGameweekPoints >= 6
-                          ? "text-positive"
-                          : player.lastGameweekPoints <= 2
-                            ? "text-negative"
-                            : "text-ink"
-                      )}
-                    >
-                      {player.lastGameweekPoints}
-                    </td>
-                    <td
-                      data-numeric
-                      className="text-right text-ink-secondary"
-                    >
-                      {player.totalPoints}
-                    </td>
-                    <td
-                      data-numeric
-                      className="text-right text-ink-secondary"
-                    >
-                      {player.form.toFixed(1)}
-                    </td>
-                    <td
-                      data-numeric
-                      className="pr-5 text-right font-semibold text-model"
-                    >
-                      {expectedPoints(player).toFixed(1)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <SeasonCharts history={history} />
       </section>
     </div>
   )
 }
 
-function Th({
-  children,
-  align = "left",
-  className,
+function Row({
+  label,
+  value,
+  tone,
 }: {
-  children: React.ReactNode
-  align?: "left" | "right"
-  className?: string
+  label: string
+  value: string
+  tone?: "positive"
 }) {
   return (
-    <th
-      scope="col"
-      className={cn(
-        "py-2 pr-4 text-2xs font-semibold uppercase tracking-[0.09em] text-ink-tertiary",
-        align === "right" ? "text-right" : "text-left",
-        className
-      )}
-    >
-      {children}
-    </th>
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-ink-secondary">{label}</dt>
+      <dd
+        data-numeric
+        className={cn(
+          "font-medium",
+          tone === "positive" ? "text-positive" : "text-ink"
+        )}
+      >
+        {value}
+      </dd>
+    </div>
   )
 }
