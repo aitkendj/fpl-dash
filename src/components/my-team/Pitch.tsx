@@ -37,16 +37,17 @@ export interface PitchProps {
 
 export function Pitch({ slots, bench = [], className }: PitchProps) {
   return (
-    <div className={cn("bg-pitch", className)}>
-      {/* Pitch */}
-      <div className="relative aspect-[2/3] w-full overflow-hidden">
-        {/* Markings — viewBox matches the 2:3 aspect exactly */}
-        <svg
-          className="absolute inset-0 h-full w-full"
-          viewBox="0 0 100 150"
-          preserveAspectRatio="xMidYMid meet"
-          aria-hidden
-        >
+    <div className={cn("flex min-h-0 flex-1 flex-col bg-pitch", className)}>
+      {/* Pitch — scales to the height available, keeping the 2:3 ratio */}
+      <div className="flex min-h-0 flex-1 justify-center overflow-hidden">
+        <div className="relative aspect-[2/3] h-full max-w-full">
+          {/* Markings — viewBox matches the 2:3 aspect exactly */}
+          <svg
+            className="absolute inset-0 h-full w-full"
+            viewBox="0 0 100 150"
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden
+          >
           {/* Mown stripes */}
           {Array.from({ length: 12 }).map((_, i) => (
             <rect
@@ -164,19 +165,20 @@ export function Pitch({ slots, bench = [], className }: PitchProps) {
             stroke="var(--color-pitch-line)"
             strokeWidth={0.35}
           />
-        </svg>
+          </svg>
 
-        {/* Starting eleven */}
-        {slots.map((slot) => (
-          <PitchTokenView key={slot.player.id} slot={slot} />
-        ))}
+          {/* Starting eleven */}
+          {slots.map((slot) => (
+            <PitchTokenView key={slot.player.id} slot={slot} />
+          ))}
+        </div>
       </div>
 
       {/* Bench — pinned to the bottom of the pitch view */}
       {bench.length > 0 && (
         <div className="border-t border-line bg-surface px-4 py-3">
           <p className="eyebrow mb-2">Bench</p>
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-2.5">
             {bench.map((player) => (
               <li key={player.id} className="flex items-center gap-2">
                 <span

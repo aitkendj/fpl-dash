@@ -6,6 +6,7 @@ import {
   Users,
   Zap,
   ArrowLeftRight,
+  Info,
   Database,
   type LucideIcon,
 } from "lucide-react"
@@ -36,6 +37,12 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/transfer-planner",
     icon: ArrowLeftRight,
     description: "Simulate transfers",
+  },
+  {
+    label: "About",
+    href: "/about",
+    icon: Info,
+    description: "Sources & roadmap",
   },
 ]
 

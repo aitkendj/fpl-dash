@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatNumber } from "@/lib/utils"
 
 /* ------------------------------------------------------------------ */
 /* Stat tile                                                           */
@@ -16,6 +16,8 @@ export interface StatTileProps {
   deltaLabel?: string
   /** Inverts delta colouring (use when a lower value is better) */
   invertDelta?: boolean
+  /** Decimal places in the delta. Use 0 for whole-number metrics. */
+  deltaDecimals?: number
   icon?: ReactNode
   className?: string
   emphasis?: boolean
@@ -28,6 +30,8 @@ export function StatTile({
   delta,
   deltaLabel,
   invertDelta = false,
+  /** Decimal places in the delta. Use 0 for whole-number metrics. */
+  deltaDecimals = 1,
   icon,
   className,
   emphasis = false,
@@ -64,7 +68,14 @@ export function StatTile({
 
       {(meta || hasDelta) && (
         <div className="mt-2 flex items-center gap-2 text-sm">
-          {hasDelta && <DeltaPill value={delta} good={isGood} flat={isFlat} />}
+          {hasDelta && (
+            <DeltaPill
+              value={delta}
+              good={isGood}
+              flat={isFlat}
+              decimals={deltaDecimals}
+            />
+          )}
           {(meta || deltaLabel) && (
             <span className="truncate text-ink-tertiary">
               {deltaLabel ?? meta}
@@ -85,13 +96,21 @@ export function DeltaPill({
   good,
   flat,
   suffix,
+  decimals = 1,
 }: {
   value: number
   good: boolean
   flat: boolean
   suffix?: string
+  /** Decimal places. Use 0 for whole-number metrics like rank. */
+  decimals?: number
 }) {
   const Icon = flat ? Minus : good ? ArrowUpRight : ArrowDownRight
+
+  const magnitude =
+    decimals === 0
+      ? formatNumber(Math.round(Math.abs(value)))
+      : Math.abs(value).toFixed(decimals)
 
   return (
     <span
@@ -106,7 +125,7 @@ export function DeltaPill({
       )}
     >
       <Icon className="h-3 w-3" strokeWidth={2.5} />
-      {Math.abs(value).toFixed(1)}
+      {magnitude}
       {suffix}
     </span>
   )

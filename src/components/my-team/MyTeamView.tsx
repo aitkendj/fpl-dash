@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Trophy, Clock, Wallet, Zap, TrendingUp } from "lucide-react"
+import { Trophy, Clock, Zap, TrendingUp } from "lucide-react"
 
 import type { SquadPlayer, ManagerSummary, GameweekHistoryRow } from "@/lib/model"
 import {
@@ -65,8 +65,7 @@ export function MyTeamView({
    * Defaults to the armband FPL actually has, but can be overridden so
    * the effect of a captaincy change can be modelled before making it.
    * Changing the captain moves the 2x multiplier from one player to
-   * another, so the difference is simply the gap between their
-   * projections.
+   * another, so the difference is the gap between their projections.
    */
   const [captainChoice, setCaptainChoice] = useState<string>("")
   const [viceChoice, setViceChoice] = useState<string>("")
@@ -89,9 +88,19 @@ export function MyTeamView({
   const epsSelected = epsFor(effectiveCaptain?.id)
   const epsDelta = epsSelected - epsActual
   const isOverridden = effectiveCaptain?.id !== captain?.id
-
-  // Team expected points, captaincy weighted
   const teamExpected = epsSelected
+
+  const captainOptions = useMemo(
+    () =>
+      squad
+        .slice()
+        .sort((a, b) => b.expectedPoints - a.expectedPoints)
+        .map((player) => ({
+          value: String(player.id),
+          label: `${player.webName} · ${player.expectedPoints.toFixed(1)}`,
+        })),
+    [squad]
+  )
 
   const latestPoints = manager?.eventPoints ?? 0
   const previousPoints = manager?.previousGameweekPoints ?? 0
@@ -101,9 +110,11 @@ export function MyTeamView({
       ? history.reduce((sum, row) => sum + row.points, 0) / history.length
       : 0
 
-  const firstRank = history[0]?.overallRank ?? 0
   const lastRank = history[history.length - 1]?.overallRank ?? 0
-  const rankChange = firstRank - lastRank
+  const previousRank = history[history.length - 2]?.overallRank ?? 0
+  // The raw change in rank position. A negative number means the rank
+  // improved (a lower position is better), so the tile inverts it.
+  const rankChange = lastRank - previousRank
 
   return (
     <div className="space-y-8">
@@ -124,7 +135,7 @@ export function MyTeamView({
       />
 
       {/* Summary metrics */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label="Latest points"
           value={latestPoints}
@@ -150,56 +161,26 @@ export function MyTeamView({
           value={formatNumber(manager?.overallRank ?? 0)}
           meta="Season position"
           delta={rankChange}
-          deltaLabel="since GW1"
+          deltaLabel="vs previous GW"
+          deltaDecimals={0}
+          invertDelta
           icon={<TrendingUp className="h-4 w-4" strokeWidth={1.8} />}
-        />
-        <StatTile
-          label="Money in bank"
-          value={`£${(manager?.bank ?? 0).toFixed(1)}m`}
-          meta="Available to spend"
-          icon={<Wallet className="h-4 w-4" strokeWidth={1.8} />}
         />
       </div>
 
-      {/* Pitch + squad + projection */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
-        {/* Pitch with bench */}
-        <Card className="overflow-hidden">
-          <CardHeader
-            title="Starting eleven"
-            description={`${formation} · Gameweek ${manager?.nextGameweek ?? "—"}`}
-            action={
-              <div className="flex items-center gap-2">
-                {captain && (
-                  <Badge tone="inverse">C · {captain.webName}</Badge>
-                )}
-                {viceCaptain && (
-                  <Badge tone="outline">VC · {viceCaptain.webName}</Badge>
-                )}
-              </div>
-            }
-          />
-          <CardBody className="p-0">
-            <Pitch
-              slots={slots}
-              bench={substitutes}
-              className="rounded-none"
-            />
-          </CardBody>
-        </Card>
-
-        {/* Squad table + projected return */}
-        <div className="space-y-6">
-          {/* Projected return */}
-          <Card>
-            <CardHeader
-              title="Projected return"
-              description="Next gameweek, captaincy weighted"
-              action={<ModelBadge />}
-            />
-            <CardBody>
+      {/* Projected return — full width */}
+      <Card>
+        <CardHeader
+          title="Projected return"
+          description="Next gameweek, captaincy weighted"
+          action={<ModelBadge />}
+        />
+        <CardBody>
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+            {/* Headline figure and budget */}
+            <div>
               <div className="flex items-baseline justify-between gap-4">
-                <p className="display-numeral text-5xl text-ink">
+                <p className="display-numeral text-6xl text-ink">
                   {teamExpected.toFixed(1)}
                 </p>
                 {isOverridden && (
@@ -207,103 +188,17 @@ export function MyTeamView({
                     <span className="block text-2xs uppercase tracking-[0.09em] text-ink-tertiary">
                       vs actual
                     </span>
-                    <DeltaText value={epsDelta} showIcon className="text-sm" />
+                    <DeltaText
+                      value={epsDelta}
+                      showIcon
+                      className="text-sm"
+                    />
                   </span>
                 )}
               </div>
               <p className="mt-2 text-sm text-ink-tertiary">
                 Expected points across all {squad.length} squad players
               </p>
-
-              {/* Captain selection */}
-              <div className="mt-5 space-y-3 border-t border-line pt-4">
-                <p className="eyebrow">Captain selection</p>
-
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div>
-                    <label
-                      className="mb-1 block text-2xs text-ink-tertiary"
-                      htmlFor="captain-select"
-                    >
-                      Captain
-                    </label>
-                    <Select
-                      id="captain-select"
-                      value={effectiveCaptain?.id ?? ""}
-                      onValueChange={setCaptainChoice}
-                      options={squad
-                        .slice()
-                        .sort((a, b) => b.expectedPoints - a.expectedPoints)
-                        .map((player) => ({
-                          value: String(player.id),
-                          label: `${player.webName} · ${player.expectedPoints.toFixed(1)}`,
-                        }))}
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="mb-1 block text-2xs text-ink-tertiary"
-                      htmlFor="vice-select"
-                    >
-                      Vice-captain
-                    </label>
-                    <Select
-                      id="vice-select"
-                      value={effectiveVice?.id ?? ""}
-                      onValueChange={setViceChoice}
-                      options={squad
-                        .slice()
-                        .sort((a, b) => b.expectedPoints - a.expectedPoints)
-                        .map((player) => ({
-                          value: String(player.id),
-                          label: `${player.webName} · ${player.expectedPoints.toFixed(1)}`,
-                        }))}
-                    />
-                  </div>
-                </div>
-
-                <p className="text-xs text-ink-tertiary">
-                  {isOverridden ? (
-                    <>
-                      FPL has{" "}
-                      <span className="font-medium text-ink-secondary">
-                        {captain?.webName}
-                      </span>{" "}
-                      as captain ({epsActual.toFixed(1)} team xPts). Your
-                      selection gives{" "}
-                      <span className="font-medium text-ink-secondary">
-                        {epsSelected.toFixed(1)}
-                      </span>
-                      .
-                    </>
-                  ) : (
-                    <>
-                      Captain{" "}
-                      <span className="font-medium text-ink-secondary">
-                        {effectiveCaptain?.webName}
-                      </span>{" "}
-                      and vice{" "}
-                      <span className="font-medium text-ink-secondary">
-                        {effectiveVice?.webName}
-                      </span>
-                      , as picked in FPL. Changing the captain moves the 2×
-                      multiplier.
-                    </>
-                  )}
-                </p>
-
-                <p className="text-xs text-ink-tertiary">
-                  If you sold your captain,{" "}
-                  <span className="font-medium text-ink-secondary">
-                    {effectiveVice?.webName}
-                  </span>{" "}
-                  would be promoted and gain{" "}
-                  <span className="font-medium text-positive">
-                    +{(effectiveVice?.expectedPoints ?? 0).toFixed(1)} pts
-                  </span>
-                  .
-                </p>
-              </div>
 
               <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-2.5 border-t border-line pt-4 text-sm">
                 <Row label="Squad size" value={`${squad.length} players`} />
@@ -319,6 +214,10 @@ export function MyTeamView({
                     .toFixed(1)} pts`}
                 />
                 <Row
+                  label="Money in bank"
+                  value={`£${(manager?.bank ?? 0).toFixed(1)}m`}
+                />
+                <Row
                   label="Team value"
                   value={`£${(manager?.teamValue ?? 0).toFixed(1)}m`}
                 />
@@ -326,103 +225,208 @@ export function MyTeamView({
                   label="Transfers made"
                   value={`${manager?.totalTransfers ?? 0}`}
                 />
-                <Row label="Free transfers" value="2 remaining" />
               </dl>
-            </CardBody>
-          </Card>
+            </div>
 
-          {/* Squad table */}
-          <Card className="overflow-hidden">
-            <CardHeader
-              title="Squad"
-              description="All fifteen players with actual form and modelled projection"
-              action={<ModelBadge />}
+            {/* Captain selection */}
+            <div className="lg:border-l lg:border-line lg:pl-8">
+              <p className="eyebrow mb-3">Captain selection</p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label
+                    className="mb-1 block text-2xs text-ink-tertiary"
+                    htmlFor="captain-select"
+                  >
+                    Captain
+                  </label>
+                  <Select
+                    id="captain-select"
+                    value={effectiveCaptain?.id ?? ""}
+                    onValueChange={setCaptainChoice}
+                    options={captainOptions}
+                  />
+                </div>
+                <div>
+                  <label
+                    className="mb-1 block text-2xs text-ink-tertiary"
+                    htmlFor="vice-select"
+                  >
+                    Vice-captain
+                  </label>
+                  <Select
+                    id="vice-select"
+                    value={effectiveVice?.id ?? ""}
+                    onValueChange={setViceChoice}
+                    options={captainOptions}
+                  />
+                </div>
+              </div>
+
+              <p className="mt-3 text-xs text-ink-tertiary">
+                {isOverridden ? (
+                  <>
+                    FPL has{" "}
+                    <span className="font-medium text-ink-secondary">
+                      {captain?.webName}
+                    </span>{" "}
+                    as captain ({epsActual.toFixed(1)} team xPts). Your
+                    selection gives{" "}
+                    <span className="font-medium text-ink-secondary">
+                      {epsSelected.toFixed(1)}
+                    </span>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Captain{" "}
+                    <span className="font-medium text-ink-secondary">
+                      {effectiveCaptain?.webName}
+                    </span>{" "}
+                    and vice{" "}
+                    <span className="font-medium text-ink-secondary">
+                      {effectiveVice?.webName}
+                    </span>
+                    , as picked in FPL. Changing the captain moves the 2×
+                    multiplier.
+                  </>
+                )}
+              </p>
+
+              <p className="mt-1.5 text-xs text-ink-tertiary">
+                If you sold your captain,{" "}
+                <span className="font-medium text-ink-secondary">
+                  {effectiveVice?.webName}
+                </span>{" "}
+                would be promoted and gain{" "}
+                <span className="font-medium text-positive">
+                  +{(effectiveVice?.expectedPoints ?? 0).toFixed(1)} pts
+                </span>
+                .
+              </p>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Starting XI + squad, aligned */}
+      <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+        {/* Starting XI with bench */}
+        <Card data-check="xi" className="flex min-h-0 flex-col overflow-hidden">
+          <CardHeader
+            title="Starting XI"
+            description={`${formation} · Gameweek ${manager?.nextGameweek ?? "—"}`}
+            action={
+              <div className="flex items-center gap-2">
+                {captain && (
+                  <Badge tone="inverse">C · {captain.webName}</Badge>
+                )}
+                {viceCaptain && (
+                  <Badge tone="outline">VC · {viceCaptain.webName}</Badge>
+                )}
+              </div>
+            }
+          />
+          <CardBody className="flex min-h-0 flex-1 flex-col p-0">
+            <Pitch
+              slots={slots}
+              bench={substitutes}
+              className="flex min-h-0 flex-1 flex-col rounded-none"
             />
-            <div className="overflow-x-auto">
-              <Table className="min-w-[720px]">
-                <THead>
-                  <tr>
-                    <Th>Player</Th>
-                    <Th align="center">Pos</Th>
-                    <Th align="center">Opponent</Th>
-                    <Th align="center">Price</Th>
-                    <Th align="center">Last GW</Th>
-                    <Th align="center">Season</Th>
-                    <Th align="center">Form</Th>
-                    <Th align="center" className="pr-5">
-                      xPts
-                    </Th>
-                  </tr>
-                </THead>
-                <TBody>
-                  {squad.map((player) => (
-                    <Tr key={player.id}>
-                      <Td className="pl-5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-ink">
-                            {player.webName}
-                          </span>
-                          {player.isCaptain && <CaptainBadge />}
-                          {player.isViceCaptain && (
-                            <CaptainBadge kind="vice" />
-                          )}
-                          {player.isSubstitute && (
-                            <Badge tone="outline" className="ml-0.5">
-                              Sub
-                            </Badge>
-                          )}
-                        </div>
-                      </Td>
-                      <Td align="center">
-                        <PositionBadge position={player.position} />
-                      </Td>
-                      <Td align="center" className="text-ink-secondary">
-                        {player.opponents.length > 0
-                          ? player.opponents.join(" + ")
-                          : "—"}
-                        {player.fixtureCount > 1 && (
-                          <Badge tone="caution" className="ml-1.5">
-                            2 fixtures
+          </CardBody>
+        </Card>
+
+        {/* Squad table */}
+        <Card data-check="squad" className="flex flex-col overflow-hidden">
+          <CardHeader
+            title="Squad"
+            description="All fifteen players with actual form and modelled projection"
+            action={<ModelBadge />}
+          />
+          <div className="min-h-0 flex-1 overflow-auto">
+            <Table className="min-w-[640px]">
+              <THead className="sticky top-0 z-10">
+                <tr>
+                  <Th className="pl-5">Player</Th>
+                  <Th align="center">Pos</Th>
+                  <Th align="center">Opponent</Th>
+                  <Th align="center">Price</Th>
+                  <Th align="center">Last GW</Th>
+                  <Th align="center">Season</Th>
+                  <Th align="center">Form</Th>
+                  <Th align="center" className="pr-5">
+                    xPts
+                  </Th>
+                </tr>
+              </THead>
+              <TBody>
+                {squad.map((player) => (
+                  <Tr key={player.id}>
+                    <Td className="pl-5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-ink">
+                          {player.webName}
+                        </span>
+                        {player.isCaptain && <CaptainBadge />}
+                        {player.isViceCaptain && (
+                          <CaptainBadge kind="vice" />
+                        )}
+                        {player.isSubstitute && (
+                          <Badge tone="outline" className="ml-0.5">
+                            Sub
                           </Badge>
                         )}
-                      </Td>
-                      <Td align="center" numeric>
-                        £{(player.priceTenths / 10).toFixed(1)}m
-                      </Td>
-                      <Td
-                        align="center"
-                        numeric
-                        className={cn(
-                          "font-medium",
-                          player.lastGameweekPoints >= 6
-                            ? "text-positive"
-                            : player.lastGameweekPoints <= 2
-                              ? "text-negative"
-                              : "text-ink"
-                        )}
-                      >
-                        {player.lastGameweekPoints}
-                      </Td>
-                      <Td align="center" numeric>
-                        {player.totalPoints}
-                      </Td>
-                      <Td align="center" numeric>
-                        {player.form.toFixed(1)}
-                      </Td>
-                      <Td
-                        align="center"
-                        numeric
-                        className="pr-5 font-semibold text-model"
-                      >
-                        {player.expectedPoints.toFixed(1)}
-                      </Td>
-                    </Tr>
-                  ))}
-                </TBody>
-              </Table>
-            </div>
-          </Card>
-        </div>
+                      </div>
+                    </Td>
+                    <Td align="center">
+                      <PositionBadge position={player.position} />
+                    </Td>
+                    <Td align="center" className="text-ink-secondary">
+                      {player.opponents.length > 0
+                        ? player.opponents.join(" + ")
+                        : "—"}
+                      {player.fixtureCount > 1 && (
+                        <Badge tone="caution" className="ml-1.5">
+                          2 fixtures
+                        </Badge>
+                      )}
+                    </Td>
+                    <Td align="center" numeric>
+                      £{(player.priceTenths / 10).toFixed(1)}m
+                    </Td>
+                    <Td
+                      align="center"
+                      numeric
+                      className={cn(
+                        "font-medium",
+                        player.lastGameweekPoints >= 6
+                          ? "text-positive"
+                          : player.lastGameweekPoints <= 2
+                            ? "text-negative"
+                            : "text-ink"
+                      )}
+                    >
+                      {player.lastGameweekPoints}
+                    </Td>
+                    <Td align="center" numeric>
+                      {player.totalPoints}
+                    </Td>
+                    <Td align="center" numeric>
+                      {player.form.toFixed(1)}
+                    </Td>
+                    <Td
+                      align="center"
+                      numeric
+                      className="pr-5 font-semibold text-model"
+                    >
+                      {player.expectedPoints.toFixed(1)}
+                    </Td>
+                  </Tr>
+                ))}
+              </TBody>
+            </Table>
+          </div>
+        </Card>
       </div>
 
       {/* Season charts */}

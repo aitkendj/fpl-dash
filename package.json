@@ -13,7 +13,8 @@
     "test": "npm run validate && npm run test:transfers && npm run test:transform",
     "test:transform": "tsx scripts/test-transform.ts",
     "test:live": "tsx --conditions=react-server scripts/test-live.ts",
-    "capture": "tsx --conditions=react-server scripts/capture-snapshot.ts"
+    "capture": "tsx --conditions=react-server scripts/capture-snapshot.ts",
+    "shot": "tsx scripts/shot.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -22,6 +23,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "recharts": "^3.10.1",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
@@ -31,7 +33,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
-    "server-only": "^0.0.1",
+    "playwright": "^1.65.0",
     "tailwindcss": "4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5"
