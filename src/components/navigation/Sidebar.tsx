@@ -51,7 +51,12 @@ export function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-export function NavigationSidebar() {
+export function NavigationSidebar({
+  origin = "live",
+}: {
+  /** Where the current figures came from */
+  origin?: "live" | "snapshot"
+}) {
   const pathname = usePathname()
 
   return (
@@ -129,16 +134,24 @@ export function NavigationSidebar() {
         </ul>
       </nav>
 
-      {/* Footer */}
+      {/* Footer — reflects where the current figures came from */}
       <div className="border-t border-line px-5 py-4">
         <div className="flex items-center gap-1.5">
-          <Database className="h-3 w-3 text-caution" strokeWidth={2} />
+          <Database
+            className={cn(
+              "h-3 w-3",
+              origin === "live" ? "text-positive" : "text-caution"
+            )}
+            strokeWidth={2}
+          />
           <span className="text-2xs font-medium uppercase tracking-[0.09em] text-ink-tertiary">
-            Sample data
+            {origin === "live" ? "Live data" : "Snapshot"}
           </span>
         </div>
         <p className="mt-1.5 text-2xs leading-relaxed text-ink-tertiary">
-          Projections are modelled from mock FPL data, not the live API.
+          {origin === "live"
+            ? "Figures are read live from the FPL API and the Sideline Quant model feed."
+            : "The live APIs were unreachable, so a saved snapshot is being shown."}
         </p>
       </div>
     </aside>

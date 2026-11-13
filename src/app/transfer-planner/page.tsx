@@ -10,6 +10,7 @@ export default async function TransferPlannerPage() {
       <SourceBanner
         status={snapshot.status}
         projectionGameweek={snapshot.projectionGameweek}
+        origin={snapshot.origin}
       />
       <TransferPlannerView
         squad={snapshot.squad}

@@ -10,6 +10,7 @@ export default async function MyTeamPage() {
       <SourceBanner
         status={snapshot.status}
         projectionGameweek={snapshot.projectionGameweek}
+        origin={snapshot.origin}
       />
       <MyTeamView
         squad={snapshot.squad}

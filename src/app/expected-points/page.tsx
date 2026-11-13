@@ -10,6 +10,7 @@ export default async function ExpectedPointsPage() {
       <SourceBanner
         status={snapshot.status}
         projectionGameweek={snapshot.projectionGameweek}
+        origin={snapshot.origin}
       />
       <ExpectedPointsView
         squad={snapshot.squad}

@@ -44,7 +44,7 @@ export default async function RootLayout({
       className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
     >
       <body className="min-h-screen bg-canvas text-ink antialiased">
-        <NavigationSidebar />
+        <NavigationSidebar origin={snapshot.origin} />
 
         {/* Content column — offset by the fixed sidebar */}
         <div className="pl-60">
