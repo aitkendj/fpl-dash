@@ -178,6 +178,21 @@ Three layers are kept strictly apart:
 
 > The upstream payloads are large — the FPL bootstrap is ~1.8MB, over the data cache limit — so they are **reduced to the fields used** before being cached. Without this, caching silently fails and every request re-downloads them.
 
+### Build resilience
+
+The production build runs the same code as the server, so an unreachable upstream service must not be able to fail it. Two rules keep that true:
+
+1. **A cached function never throws.** An error thrown inside a `"use cache"` boundary cannot be caught by its caller, so every cached accessor catches its own failures and returns a result object instead.
+2. **Failures are cached briefly, successes for hours.** `cacheLife()` is set conditionally — a failure is retried after a minute rather than being held for the full window.
+
+If the live sources cannot be reached, the captured snapshot is used and the interface says **"Snapshot"** rather than **"Live"**. You can verify this locally:
+
+```bash
+FPL_API_BASE="https://127.0.0.1:9/api" SQ_ENDPOINT="https://127.0.0.1:9/latest.json" npm run build
+```
+
+The build succeeds and every page renders from the snapshot.
+
 ### Offline fallback
 
 `src/data/snapshot.ts` is a captured copy of the live data, used when the external sources cannot be reached. The interface says so plainly in the header ("Snapshot" rather than "Live") and in the source banner. Both paths run identical code.
