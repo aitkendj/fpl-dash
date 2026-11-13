@@ -9,6 +9,40 @@ It pulls live data from the official Fantasy Premier League API, joins it with p
 
 ---
 
+## For non-developers
+
+**What this is.** A private dashboard for managing my own Fantasy Premier League
+team. It answers three questions every week: who should start, who should
+wear the captain's armband, and who should I swap in?
+
+**What it shows.** My actual squad on a pitch, the season so far, every player
+in the Premier League ranked by how many points they're expected to score next
+gameweek, and a planner that shows what a swap would cost me in money and
+points before I commit it.
+
+**Where the numbers come from.** Two public sources:
+
+- The **official Fantasy Premier League API** for everything that has actually
+  happened — my picks, player prices, points scored, fixtures and my rank.
+- **[Sideline Quant](https://sidelinequant.com)** for what is *expected* to
+  happen — projected points, how likely a player is to start, and a realistic
+  best-case and worst-case range.
+
+**Actual and predicted are always visibly different.** Predicted figures are
+marked `Model` and shown in a different colour; actual figures are marked
+`FPL`. A green number means "this went well", a red one means "this went
+badly", and neither is used for a prediction.
+
+**It costs nothing and needs no sign-up.** No API keys, no database, no
+accounts. If the live data can't be reached, a saved snapshot is shown instead
+and the interface says so.
+
+**Try it:** <https://01-fpl-dash.vercel.app/>
+
+The rest of this README is about running it yourself.
+
+---
+
 ## Features
 
 | Page | What it does |
@@ -45,7 +79,7 @@ Prices are taken from FPL, which is authoritative — the two feeds refresh inde
 
 ## Requirements
 
-- **Node.js 20 or newer**
+- **Node.js 20.9 or newer** — Next.js 16 requires it
 - No API keys, accounts or environment variables
 
 ---
@@ -53,14 +87,33 @@ Prices are taken from FPL, which is authoritative — the two feeds refresh inde
 ## Getting started
 
 ```bash
-# install dependencies
+# 1. Get the code
+git clone https://github.com/aitkendj/fpl-dash.git
+cd fpl-dash
+
+# 2. Download the dependencies (~400 packages, takes about 10 seconds)
 npm install
 
-# start the development server
+# 3. Start the development server
 npm run dev
 ```
 
 Open <http://localhost:3000>.
+
+Two things worth knowing:
+
+- **Run the commands from inside the project folder.** `npm install` reads the
+  `package.json` in the current directory to work out what to download — that
+  file lists every dependency with the version range to use. The
+  `package-lock.json` alongside it pins the exact resolved versions and
+  integrity hashes, so everyone ends up with an identical dependency tree.
+  If the terminal is pointed somewhere else, npm walks *up* the directory
+  tree looking for a `package.json` and will happily install a different
+  project's dependencies.
+- **`npm install` versus `npm ci`.** `npm install` may update the lockfile if
+  something has drifted. `npm ci` installs exactly what the lockfile says and
+  discards any existing `node_modules` — use it for reproducible builds and
+  CI.
 
 ### Production build
 
@@ -95,7 +148,7 @@ The default Next.js settings are sufficient — no build arguments, environment 
 ### Deploying anywhere else
 
 ```bash
-npm ci
+npm ci        # install exactly what the lockfile specifies
 npm run build
 npm start
 ```
